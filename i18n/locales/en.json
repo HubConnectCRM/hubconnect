@@ -1,0 +1,67 @@
+{
+  "common": {
+    "appName": "HubConnect",
+    "tagline": "Shared contact pool for sales & event teams",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "email": "Email",
+    "password": "Password",
+    "fullName": "Full name",
+    "save": "Save",
+    "cancel": "Cancel",
+    "create": "Create",
+    "edit": "Edit",
+    "delete": "Delete",
+    "search": "Search",
+    "loading": "Loading…",
+    "language": "Language",
+    "all": "All",
+    "none": "None",
+    "yes": "Yes",
+    "no": "No",
+    "comingSoon": "Coming in the next build phase."
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "contacts": "Contacts",
+    "companies": "Companies",
+    "events": "Events",
+    "import": "Import",
+    "audit": "Audit log",
+    "settings": "Settings"
+  },
+  "roles": {
+    "admin": "Admin",
+    "sales": "Sales",
+    "event": "Event"
+  },
+  "login": {
+    "title": "Sign in to HubConnect",
+    "subtitle": "One shared pool. No more scattered spreadsheets.",
+    "signInButton": "Sign in",
+    "signUpButton": "Create account",
+    "needAccount": "Need an account? Sign up",
+    "haveAccount": "Already have an account? Sign in",
+    "checkEmail": "Check your inbox to confirm your email, then sign in.",
+    "genericError": "Could not sign you in. Check your details and try again."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome back, {{name}}",
+    "totalContacts": "Contacts",
+    "totalCompanies": "Companies",
+    "totalEvents": "Events",
+    "upcomingFollowups": "Upcoming follow-ups",
+    "recentActivity": "Recent activity",
+    "empty": "Nothing here yet — start by adding a contact."
+  },
+  "setup": {
+    "title": "Finish setting up HubConnect",
+    "body": "The app is running, but it is not connected to a database yet.",
+    "step1": "Create a free project at supabase.com",
+    "step2": "Run supabase/schema.sql in the Supabase SQL editor",
+    "step3": "Copy your project URL and anon key into .env.local",
+    "step4": "Restart the dev server",
+    "envHint": "See .env.example for the exact variable names."
+  }
+}

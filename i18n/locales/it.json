@@ -1,0 +1,67 @@
+{
+  "common": {
+    "appName": "HubConnect",
+    "tagline": "Pool contatti condiviso per team sales ed eventi",
+    "signIn": "Accedi",
+    "signOut": "Esci",
+    "email": "Email",
+    "password": "Password",
+    "fullName": "Nome completo",
+    "save": "Salva",
+    "cancel": "Annulla",
+    "create": "Crea",
+    "edit": "Modifica",
+    "delete": "Elimina",
+    "search": "Cerca",
+    "loading": "Caricamento…",
+    "language": "Lingua",
+    "all": "Tutti",
+    "none": "Nessuno",
+    "yes": "Sì",
+    "no": "No",
+    "comingSoon": "In arrivo nella prossima fase."
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "contacts": "Contatti",
+    "companies": "Aziende",
+    "events": "Eventi",
+    "import": "Importa",
+    "audit": "Registro modifiche",
+    "settings": "Impostazioni"
+  },
+  "roles": {
+    "admin": "Admin",
+    "sales": "Sales",
+    "event": "Eventi"
+  },
+  "login": {
+    "title": "Accedi a HubConnect",
+    "subtitle": "Un unico pool condiviso. Basta fogli Excel sparsi.",
+    "signInButton": "Accedi",
+    "signUpButton": "Crea account",
+    "needAccount": "Non hai un account? Registrati",
+    "haveAccount": "Hai già un account? Accedi",
+    "checkEmail": "Controlla la posta per confermare l'email, poi accedi.",
+    "genericError": "Accesso non riuscito. Controlla i dati e riprova."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Bentornato, {{name}}",
+    "totalContacts": "Contatti",
+    "totalCompanies": "Aziende",
+    "totalEvents": "Eventi",
+    "upcomingFollowups": "Prossimi follow-up",
+    "recentActivity": "Attività recente",
+    "empty": "Ancora niente — inizia aggiungendo un contatto."
+  },
+  "setup": {
+    "title": "Completa la configurazione di HubConnect",
+    "body": "L'app è attiva, ma non è ancora collegata a un database.",
+    "step1": "Crea un progetto gratuito su supabase.com",
+    "step2": "Esegui supabase/schema.sql nell'editor SQL di Supabase",
+    "step3": "Copia URL del progetto e anon key in .env.local",
+    "step4": "Riavvia il server di sviluppo",
+    "envHint": "Vedi .env.example per i nomi esatti delle variabili."
+  }
+}

@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# HubConnect
 
-## Getting Started
+Shared contact pool for sales & event teams — one place for the contacts sales
+finds and the people the event team wants to reach, with full change history.
 
-First, run the development server:
+Replaces the scattered per-person Excel sheets (FILE SALES, Beauty Connect, NRF
+List, …) with a single trilingual (EN / IT / TR) web app.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Stack
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Next.js 16 (App Router) + React 19
+- Supabase (PostgreSQL, Auth, Row Level Security)
+- Tailwind CSS v4
+- i18next (EN / IT / TR)
+- exceljs (importing existing spreadsheets)
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Create a free project at [supabase.com](https://supabase.com).
+2. In the Supabase **SQL editor**, paste and run [`supabase/schema.sql`](supabase/schema.sql).
+3. Copy `.env.example` to `.env.local` and fill in your project URL + anon key
+   (Supabase → Settings → API).
+4. Install and run:
 
-## Learn More
+   ```bash
+   npm install
+   npm run dev
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+5. Open http://localhost:3000, create the first account, then in Supabase set
+   that profile's `role` to `admin` (table editor → `profiles`).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Until step 3 is done the app shows a setup screen instead of crashing.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Data model
 
-## Deploy on Vercel
+`companies` ← `contacts` → `interactions` (timeline). Contacts link to `events`
+through `event_registrations` (the desiderata / invite bridge). `deals` track the
+pipeline. Every change to these tables is written to `audit_log` (who, when, what).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Build phases
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Foundation — auth, roles, trilingual shell, schema ✅
+2. Companies + contacts CRUD
+3. Interaction timeline + follow-ups
+4. Events + the sales↔event bridge
+5. Excel importer (migrate existing files)
+6. Audit log UI, permissions polish, pipeline

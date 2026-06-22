@@ -1,0 +1,67 @@
+{
+  "common": {
+    "appName": "HubConnect",
+    "tagline": "Sales ve event ekipleri için ortak kişi havuzu",
+    "signIn": "Giriş yap",
+    "signOut": "Çıkış yap",
+    "email": "E-posta",
+    "password": "Parola",
+    "fullName": "Ad soyad",
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "create": "Oluştur",
+    "edit": "Düzenle",
+    "delete": "Sil",
+    "search": "Ara",
+    "loading": "Yükleniyor…",
+    "language": "Dil",
+    "all": "Hepsi",
+    "none": "Yok",
+    "yes": "Evet",
+    "no": "Hayır",
+    "comingSoon": "Sonraki fazda geliyor."
+  },
+  "nav": {
+    "dashboard": "Panel",
+    "contacts": "Kişiler",
+    "companies": "Şirketler",
+    "events": "Etkinlikler",
+    "import": "İçe aktar",
+    "audit": "Denetim kaydı",
+    "settings": "Ayarlar"
+  },
+  "roles": {
+    "admin": "Yönetici",
+    "sales": "Sales",
+    "event": "Event"
+  },
+  "login": {
+    "title": "HubConnect'e giriş yap",
+    "subtitle": "Tek ortak havuz. Dağınık Excel'lere son.",
+    "signInButton": "Giriş yap",
+    "signUpButton": "Hesap oluştur",
+    "needAccount": "Hesabın yok mu? Kayıt ol",
+    "haveAccount": "Zaten hesabın var mı? Giriş yap",
+    "checkEmail": "E-postanı onaylamak için gelen kutunu kontrol et, sonra giriş yap.",
+    "genericError": "Giriş yapılamadı. Bilgilerini kontrol edip tekrar dene."
+  },
+  "dashboard": {
+    "title": "Panel",
+    "welcome": "Tekrar hoş geldin, {{name}}",
+    "totalContacts": "Kişiler",
+    "totalCompanies": "Şirketler",
+    "totalEvents": "Etkinlikler",
+    "upcomingFollowups": "Yaklaşan takipler",
+    "recentActivity": "Son hareketler",
+    "empty": "Henüz bir şey yok — bir kişi ekleyerek başla."
+  },
+  "setup": {
+    "title": "HubConnect kurulumunu tamamla",
+    "body": "Uygulama çalışıyor ama henüz bir veritabanına bağlı değil.",
+    "step1": "supabase.com üzerinde ücretsiz bir proje oluştur",
+    "step2": "supabase/schema.sql dosyasını Supabase SQL editöründe çalıştır",
+    "step3": "Proje URL ve anon key bilgilerini .env.local içine koy",
+    "step4": "Geliştirme sunucusunu yeniden başlat",
+    "envHint": "Değişken adları için .env.example dosyasına bak."
+  }
+}
