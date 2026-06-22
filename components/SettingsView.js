@@ -1,0 +1,124 @@
+"use client";
+
+import { useActionState, useTransition } from "react";
+import { useTranslation } from "react-i18next";
+import { Badge, Button, Card, Field, Input, PageHeader, Select } from "@/components/ui";
+import { setLanguage } from "@/i18n/I18nProvider";
+import { LANGUAGES } from "@/i18n/config";
+import {
+  updateMyProfile,
+  updateUserRole,
+  toggleUserActive,
+} from "@/app/(app)/settings/actions";
+
+const ROLES = ["admin", "sales", "event"];
+
+export default function SettingsView({ profile, users, isAdmin }) {
+  const { t, i18n } = useTranslation();
+  const [state, action, pending] = useActionState(updateMyProfile, {});
+
+  return (
+    <div className="mx-auto max-w-4xl">
+      <PageHeader title={t("settings.title")} />
+
+      <Card className="mb-6 p-6">
+        <h2 className="mb-4 text-lg font-semibold">{t("settings.profile")}</h2>
+        <form action={action} className="max-w-md space-y-4">
+          <Field label={t("common.email")}>
+            <Input value={profile.email || ""} disabled />
+          </Field>
+          <Field label={t("common.fullName")}>
+            <Input name="full_name" defaultValue={profile.full_name || ""} />
+          </Field>
+          <Field label={t("settings.language")}>
+            <Select
+              name="language"
+              defaultValue={i18n.language}
+              onChange={(e) => setLanguage(e.target.value)}
+            >
+              {LANGUAGES.map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <div className="flex items-center gap-3">
+            <Button type="submit" disabled={pending}>
+              {pending ? t("common.saving") : t("common.save")}
+            </Button>
+            {state?.ok && <span className="text-sm text-green-700">{t("settings.saved")}</span>}
+          </div>
+        </form>
+      </Card>
+
+      {isAdmin && (
+        <Card className="overflow-hidden">
+          <div className="p-5">
+            <h2 className="text-lg font-semibold">{t("settings.users")}</h2>
+            <p className="mt-1 text-sm text-[var(--muted)]">{t("settings.usersHint")}</p>
+          </div>
+          <table className="w-full text-sm">
+            <thead className="border-y border-[var(--border)] text-left text-[var(--muted)]">
+              <tr>
+                <th className="px-4 py-3 font-medium">{t("common.fullName")}</th>
+                <th className="px-4 py-3 font-medium">{t("common.email")}</th>
+                <th className="px-4 py-3 font-medium">{t("settings.role")}</th>
+                <th className="px-4 py-3 font-medium">{t("settings.active")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((u) => (
+                <UserRow key={u.id} user={u} isSelf={u.id === profile.id} />
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function UserRow({ user, isSelf }) {
+  const { t } = useTranslation();
+  const [pending, startTransition] = useTransition();
+
+  return (
+    <tr className="border-b border-[var(--border)] last:border-0">
+      <td className="px-4 py-3 font-medium">
+        {user.full_name || "—"}
+        {isSelf && <span className="ml-2 text-xs text-[var(--muted)]">({t("settings.you")})</span>}
+      </td>
+      <td className="px-4 py-3 text-[var(--muted)]">{user.email}</td>
+      <td className="px-4 py-3">
+        <select
+          value={user.role}
+          disabled={pending}
+          onChange={(e) =>
+            startTransition(() => updateUserRole(user.id, e.target.value))
+          }
+          className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-sm outline-none focus:border-[var(--brand)]"
+        >
+          {ROLES.map((r) => (
+            <option key={r} value={r}>
+              {t(`roles.${r}`)}
+            </option>
+          ))}
+        </select>
+      </td>
+      <td className="px-4 py-3">
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() =>
+            startTransition(() => toggleUserActive(user.id, !user.is_active))
+          }
+        >
+          <Badge color={user.is_active ? "green" : "gray"}>
+            {user.is_active ? t("common.yes") : t("common.no")}
+          </Badge>
+        </button>
+      </td>
+    </tr>
+  );
+}

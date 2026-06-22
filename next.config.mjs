@@ -10,6 +10,12 @@ const nextConfig = {
   turbopack: {
     root: __dirname,
   },
+  // Excel uploads are sent to a server action as base64 — allow larger bodies.
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "15mb",
+    },
+  },
 };
 
 export default nextConfig;
