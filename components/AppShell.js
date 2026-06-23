@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
@@ -34,10 +35,15 @@ export default function AppShell({ profile, children }) {
     <div className="flex min-h-full flex-1">
       <aside className="flex w-60 flex-none flex-col border-r border-[var(--border)] bg-[var(--surface)]">
         <div className="px-5 py-5">
-          <span className="text-lg font-semibold text-[var(--brand)]">
-            {t("common.appName")}
-          </span>
-          <p className="mt-0.5 text-xs text-[var(--muted)]">{t("common.tagline")}</p>
+          <Image
+            src="/logo.png"
+            alt={t("common.appName")}
+            width={160}
+            height={48}
+            className="h-10 w-auto object-contain"
+            style={{ filter: "invert(1)" }}
+            priority
+          />
         </div>
 
         <nav className="flex-1 space-y-0.5 px-3">
