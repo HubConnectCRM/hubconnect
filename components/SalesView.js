@@ -1,18 +1,18 @@
 "use client";
 
-import { useMemo, useState, useEffect, useTransition } from "react";
+import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import { useActionState } from "react";
-import { Badge, Button, Card, EmptyState, Input, PageHeader, Select } from "@/components/ui";
+import { Badge, Button, Card, EmptyState, Field, Input, PageHeader, Select } from "@/components/ui";
 import Combobox from "@/components/Combobox";
-import { pushDealToEvent, setDealStage } from "@/app/(app)/deals/actions";
+import { AddRepForm, RepsTable } from "@/components/DealReps";
+import { pushDealToEvent, saveDeal, setDealStage } from "@/app/(app)/deals/actions";
 
 const STAGES = ["prospect", "in_progress", "won", "lost"];
 const STAGE_COLOR = { prospect: "gray", in_progress: "amber", won: "green", lost: "red" };
 const RSVP_COLOR = { yes: "green", no: "red", maybe: "amber" };
 
-export default function SalesView({ deals, owners, events, leadFiles }) {
+export default function SalesView({ deals, owners, events, leadFiles, companies, contacts, groups }) {
   const { t } = useTranslation();
   const [q, setQ] = useState("");
   const [owner, setOwner] = useState("");
@@ -35,6 +35,12 @@ export default function SalesView({ deals, owners, events, leadFiles }) {
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader title={t("sales.title")} subtitle={t("sales.subtitleDeals")} />
+
+      {/* Add deal (also lets sales create a lead file + contacts from here) */}
+      <Card className="mb-4 p-5">
+        <h2 className="mb-3 text-sm font-semibold text-[var(--muted)]">{t("deals.add")}</h2>
+        <AddDealForm companies={companies} leadFiles={leadFiles} groups={groups} owners={owners} />
+      </Card>
 
       <div className="mb-4 flex flex-wrap gap-3">
         <div className="min-w-48 flex-1">
@@ -66,14 +72,80 @@ export default function SalesView({ deals, owners, events, leadFiles }) {
         <EmptyState>{q || owner || stage || file ? t("common.noResults") : t("sales.emptyDeals")}</EmptyState>
       ) : (
         <div className="space-y-3">
-          {filtered.map((d) => <SalesDealCard key={d.id} deal={d} events={events} />)}
+          {filtered.map((d) => <SalesDealCard key={d.id} deal={d} events={events} contacts={contacts} />)}
         </div>
       )}
     </div>
   );
 }
 
-function SalesDealCard({ deal, events }) {
+function AddDealForm({ companies, leadFiles, groups, owners }) {
+  const { t } = useTranslation();
+  const [state, action, pending] = useActionState(saveDeal, {});
+  const [companyName, setCompanyName] = useState("");
+  const [fileValue, setFileValue] = useState("");
+  const [groupId, setGroupId] = useState("");
+
+  useEffect(() => { if (state?.ok) { setCompanyName(""); setFileValue(""); setGroupId(""); } }, [state?.ok]);
+
+  const companyOpts = companies.map((c) => ({ value: c.name, label: c.name }));
+  const fileOpts = leadFiles.map((f) => ({ value: f.id, label: f.name }));
+  const isExistingFile = leadFiles.some((f) => f.id === fileValue);
+  const groupOpts = isExistingFile
+    ? groups.filter((g) => g.lead_file_id === fileValue).map((g) => ({ value: g.id, label: g.name }))
+    : [];
+
+  return (
+    <form action={action} className="flex flex-wrap items-end gap-3">
+      <input type="hidden" name="company_name" value={companyName} />
+      <input type="hidden" name="lead_file_id" value={isExistingFile ? fileValue : ""} />
+      <input type="hidden" name="lead_file_name" value={isExistingFile ? "" : fileValue} />
+      <input type="hidden" name="group_id" value={groupId} />
+      <div className="min-w-52 flex-1">
+        <Field label={t("deals.company")}>
+          <Combobox name="_company_display" options={companyOpts} value={companyName} onChange={setCompanyName} placeholder={t("deals.companyPlaceholder")} allowCustom />
+        </Field>
+      </div>
+      <div className="w-52">
+        <Field label={t("sales.fileOrNew")}>
+          <Combobox name="_file_display" options={fileOpts} value={fileValue} onChange={(v) => { setFileValue(v); setGroupId(""); }} placeholder={t("sales.pickOrNewFile")} allowCustom />
+        </Field>
+      </div>
+      {groupOpts.length > 0 && (
+        <div className="w-40">
+          <Field label={t("groups.label")}>
+            <Combobox name="_group_display" options={groupOpts} value={groupId} onChange={setGroupId} placeholder={t("groups.noGroup")} />
+          </Field>
+        </div>
+      )}
+      <div className="w-40">
+        <Field label={t("deals.owner")}>
+          <Select name="owner_id" defaultValue="">
+            <option value="">{t("deals.me")}</option>
+            {owners.map((o) => <option key={o.id} value={o.id}>{o.full_name || o.email}</option>)}
+          </Select>
+        </Field>
+      </div>
+      <div className="w-40">
+        <Field label={t("deals.stage")}>
+          <Select name="stage" defaultValue="prospect">
+            {STAGES.map((s) => <option key={s} value={s}>{t(`deals.stages.${s}`)}</option>)}
+          </Select>
+        </Field>
+      </div>
+      <Button type="submit" disabled={pending || !companyName || !fileValue}>{t("common.add")}</Button>
+      {state?.error && (
+        <p className="w-full text-sm text-red-700">
+          {state.error === "company_required" ? t("deals.companyRequired")
+            : state.error === "file_required" ? t("sales.fileRequired")
+            : state.error}
+        </p>
+      )}
+    </form>
+  );
+}
+
+function SalesDealCard({ deal, events, contacts }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [stagePending, startStage] = useTransition();
@@ -121,42 +193,11 @@ function SalesDealCard({ deal, events }) {
             )}
           </div>
 
-          {reps.length > 0 ? (
-            <div className="mb-4 overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--surface)]">
-              <table className="w-full text-sm">
-                <thead className="border-b border-[var(--border)] text-left text-[var(--muted)]">
-                  <tr>
-                    <th className="px-3 py-2 font-medium">{t("deals.rep")}</th>
-                    <th className="px-3 py-2 font-medium">{t("common.email")}</th>
-                    <th className="px-3 py-2 font-medium">{t("common.phone")}</th>
-                    <th className="px-3 py-2 font-medium">{t("rsvp.label")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reps.map((r) => {
-                    const c = r.contact || {};
-                    return (
-                      <tr key={r.id} className="border-b border-[var(--border)] last:border-0">
-                        <td className="px-3 py-2 font-medium">
-                          <a href={`/contacts/${c.id}`} className="hover:underline">{c.full_name || "—"}</a>
-                          {c.job_title && <span className="block text-xs text-[var(--muted)]">{c.job_title}</span>}
-                        </td>
-                        <td className="px-3 py-2 text-[var(--muted)]">{c.email || "—"}</td>
-                        <td className="px-3 py-2 text-[var(--muted)]">{c.phone || "—"}</td>
-                        <td className="px-3 py-2">
-                          {r.rsvp ? <Badge color={RSVP_COLOR[r.rsvp]}>{t(`rsvp.${r.rsvp}`)}</Badge> : <span className="text-xs text-[var(--muted)]">{t("rsvp.none")}</span>}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="mb-4 text-sm text-[var(--muted)]">{t("deals.noReps")}</p>
-          )}
+          {/* Editable reps (sales can add reps / create contacts here) */}
+          <RepsTable reps={reps} leadFileId={deal.lead_file_id} />
+          <AddRepForm dealId={deal.id} leadFileId={deal.lead_file_id} contacts={contacts} />
 
-          <div className="border-t border-[var(--border)] pt-4">
+          <div className="mt-4 border-t border-[var(--border)] pt-4">
             <PushToEvent deal={deal} events={events} />
           </div>
         </div>

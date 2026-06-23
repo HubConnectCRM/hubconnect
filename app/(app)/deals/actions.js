@@ -32,9 +32,22 @@ async function resolveCompany(supabase, name, userId) {
 export async function saveDeal(prevState, formData) {
   const { supabase, user } = await requireProfile();
   const id = clean(formData.get("id"));
-  const leadFileId = clean(formData.get("lead_file_id"));
+  let leadFileId = clean(formData.get("lead_file_id"));
+  const leadFileName = clean(formData.get("lead_file_name")); // create file inline
   const companyName = clean(formData.get("company_name"));
   if (!companyName) return { error: "company_required" };
+
+  // When creating a deal from Sales without a file, make the lead file on the fly.
+  if (!id && !leadFileId && leadFileName) {
+    const { data: lf, error: lfErr } = await supabase
+      .from("lead_files")
+      .insert({ name: leadFileName, created_by: user.id })
+      .select("id")
+      .single();
+    if (lfErr) return { error: lfErr.message };
+    leadFileId = lf.id;
+  }
+  if (!id && !leadFileId) return { error: "file_required" };
 
   const companyId = await resolveCompany(supabase, companyName, user.id);
 
@@ -58,6 +71,7 @@ export async function saveDeal(prevState, formData) {
   }
 
   if (leadFileId) revalidatePath(`/leads/${leadFileId}`);
+  revalidatePath("/leads");
   revalidatePath("/sales");
   return { ok: Date.now() };
 }
