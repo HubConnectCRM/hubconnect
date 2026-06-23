@@ -9,6 +9,26 @@ function clean(v) {
   return s === "" ? null : s;
 }
 
+// Find a company by normalized name, or create it. Returns its id (or null).
+async function resolveCompany(supabase, name, userId) {
+  const name_clean = clean(name);
+  if (!name_clean) return null;
+  const norm = name_clean.toLowerCase();
+  const { data: existing } = await supabase
+    .from("companies")
+    .select("id")
+    .eq("name_normalized", norm)
+    .limit(1)
+    .maybeSingle();
+  if (existing) return existing.id;
+  const { data: created } = await supabase
+    .from("companies")
+    .insert({ name: name_clean, created_by: userId })
+    .select("id")
+    .single();
+  return created?.id ?? null;
+}
+
 export async function saveEvent(prevState, formData) {
   const { supabase, user } = await requireProfile();
 
@@ -53,8 +73,35 @@ export async function deleteEvent(id) {
 export async function addRegistration(prevState, formData) {
   const { supabase, user } = await requireProfile();
   const eventId = clean(formData.get("event_id"));
-  const contactId = clean(formData.get("contact_id"));
-  if (!eventId || !contactId) return { error: "missing" };
+  let contactId = clean(formData.get("contact_id"));
+  if (!eventId) return { error: "missing" };
+
+  // New person typed inline → create a real contact in the shared pool.
+  if (!contactId) {
+    const fullName = clean(formData.get("full_name"));
+    if (!fullName) return { error: "name_required" };
+    const parts = fullName.split(/\s+/);
+    const firstName = parts.shift() || fullName;
+    const lastName = parts.join(" ") || null;
+    const companyId = await resolveCompany(supabase, formData.get("company_name"), user.id);
+    const { data: created, error: cErr } = await supabase
+      .from("contacts")
+      .insert({
+        first_name: firstName,
+        last_name: lastName,
+        email: clean(formData.get("email")),
+        phone: clean(formData.get("phone")),
+        job_title: clean(formData.get("job_title")),
+        company_id: companyId,
+        owner_id: user.id,
+        source: clean(formData.get("registration_source")) || "event",
+        created_by: user.id,
+      })
+      .select("id")
+      .single();
+    if (cErr) return { error: cErr.message };
+    contactId = created.id;
+  }
 
   const { error } = await supabase.from("event_registrations").insert({
     event_id: eventId,
