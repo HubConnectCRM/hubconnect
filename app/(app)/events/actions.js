@@ -60,6 +60,8 @@ export async function addRegistration(prevState, formData) {
     event_id: eventId,
     contact_id: contactId,
     status: clean(formData.get("status")) || "desiderata",
+    group_id: clean(formData.get("group_id")) || null,
+    registration_source: clean(formData.get("registration_source")) || "event",
     requested_by: user.id,
   });
   if (error) {
@@ -67,7 +69,39 @@ export async function addRegistration(prevState, formData) {
     return { error: error.message };
   }
   revalidatePath(`/events/${eventId}`);
+  revalidatePath("/sales");
   return { ok: Date.now() };
+}
+
+export async function moveRegistration(regId, newEventId) {
+  const { supabase } = await requireProfile();
+  await supabase
+    .from("event_registrations")
+    .update({ event_id: newEventId, group_id: null })
+    .eq("id", regId);
+  revalidatePath("/sales");
+}
+
+export async function addEventGroup(prevState, formData) {
+  const { supabase, user } = await requireProfile();
+  const eventId = clean(formData.get("event_id"));
+  const name = clean(formData.get("name"));
+  if (!eventId || !name) return { error: "missing" };
+  const { error } = await supabase.from("contact_groups").insert({
+    event_id: eventId,
+    name,
+    created_by: user.id,
+  });
+  if (error) return { error: error.message };
+  revalidatePath(`/events/${eventId}`);
+  return { ok: Date.now() };
+}
+
+export async function deleteGroup(id, eventId) {
+  const { supabase } = await requireProfile();
+  await supabase.from("contact_groups").delete().eq("id", id);
+  if (eventId) revalidatePath(`/events/${eventId}`);
+  else revalidatePath("/leads");
 }
 
 // Set attendance + optional note, and log the change to history (who/when/what).

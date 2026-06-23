@@ -49,6 +49,7 @@
     "companies": "Şirketler",
     "events": "Etkinlikler",
     "sales": "Sales",
+    "leads": "Leads",
     "import": "İçe aktar",
     "audit": "Denetim kaydı",
     "settings": "Ayarlar"
@@ -61,7 +62,10 @@
     "attendance": "Katılım",
     "lastNote": "Son not / aksiyon",
     "empty": "Henüz etkinlik katılımı yok.",
-    "notSet": "Belirlenmedi"
+    "notSet": "Belirlenmedi",
+    "moveEvent": "Bu etkinliğe taşı",
+    "openEvent": "Etkinlik sayfasını aç",
+    "removeFromEvent": "Etkinlikten çıkar"
   },
   "roles": {
     "admin": "Yönetici",
@@ -235,6 +239,28 @@
       "source": "Kaynak",
       "notes": "Not"
     }
+  },
+  "leads": {
+    "title": "Leads",
+    "subtitle": "Etkinliğe bağlı olmayan satış pipeline'ları",
+    "new": "Yeni lead dosyası",
+    "empty": "Henüz lead dosyası yok.",
+    "contactsEmpty": "Bu dosyada henüz kişi yok.",
+    "addContact": "Bu dosyaya kişi ekle",
+    "contacts": "Kişiler",
+    "description": "Açıklama",
+    "deleteConfirm": "Bu lead dosyasını ve tüm kişilerini sil?",
+    "created": "Lead dosyası oluşturuldu.",
+    "updated": "Lead dosyası güncellendi.",
+    "alreadyAdded": "Bu kişi zaten bu dosyada."
+  },
+  "groups": {
+    "label": "Alt grup",
+    "noGroup": "Alt grup yok",
+    "add": "Alt grup ekle",
+    "addPlaceholder": "örn. Sponsorlar, Startuplar, VIP",
+    "manage": "Alt grupları yönet",
+    "none": "Grupsuz"
   },
   "audit": {
     "title": "Denetim kaydı",

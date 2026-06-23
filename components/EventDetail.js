@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { useTranslation } from "react-i18next";
-import { Badge, Button, Card, EmptyState, PageHeader, Textarea } from "@/components/ui";
+import { Badge, Button, Card, EmptyState, Input, PageHeader, Textarea } from "@/components/ui";
 import DeleteButton from "@/components/DeleteButton";
 import AddRegistration from "@/components/AddRegistration";
 import {
+  addEventGroup,
   confirmRsvp,
   deleteEvent,
+  deleteGroup,
   removeRegistration,
   updateRegistrationStatus,
 } from "@/app/(app)/events/actions";
@@ -16,11 +18,19 @@ import { EVENT_REG_STATUSES } from "@/lib/constants";
 
 const RSVP_COLOR = { yes: "green", no: "red", maybe: "amber" };
 
-export default function EventDetail({ event, registrations, contacts }) {
+export default function EventDetail({ event, registrations, contacts, groups }) {
   const { t } = useTranslation();
   const info = [event.location, event.start_date, event.end_date]
     .filter(Boolean)
     .join(" · ");
+  const [activeGroup, setActiveGroup] = useState("all");
+
+  const filtered =
+    activeGroup === "all"
+      ? registrations
+      : activeGroup === "none"
+      ? registrations.filter((r) => !r.group_id)
+      : registrations.filter((r) => r.group_id === activeGroup);
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -51,14 +61,17 @@ export default function EventDetail({ event, registrations, contacts }) {
         <h2 className="mb-3 text-sm font-semibold text-[var(--muted)]">
           {t("events.addContactToEvent")}
         </h2>
-        <AddRegistration eventId={event.id} contacts={contacts} />
+        <AddRegistration eventId={event.id} contacts={contacts} groups={groups} />
       </Card>
 
+      {/* Group tabs */}
+      <EventGroupManager eventId={event.id} groups={groups} activeGroup={activeGroup} onSelect={setActiveGroup} total={registrations.length} />
+
       <h2 className="mb-3 text-lg font-semibold">
-        {t("events.registrations")} ({registrations.length})
+        {t("events.registrations")} ({filtered.length})
       </h2>
 
-      {registrations.length === 0 ? (
+      {filtered.length === 0 ? (
         <EmptyState>—</EmptyState>
       ) : (
         <Card className="overflow-x-auto">
@@ -69,13 +82,14 @@ export default function EventDetail({ event, registrations, contacts }) {
                 <th className="px-4 py-3 font-medium">{t("contacts.company")}</th>
                 <th className="px-4 py-3 font-medium">{t("common.phone")}</th>
                 <th className="px-4 py-3 font-medium">{t("bridge.owner")}</th>
+                <th className="px-4 py-3 font-medium">{t("groups.label")}</th>
                 <th className="px-4 py-3 font-medium">{t("rsvp.label")}</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody>
-              {registrations.map((r) => (
-                <RegistrationRow key={r.id} reg={r} eventId={event.id} />
+              {filtered.map((r) => (
+                <RegistrationRow key={r.id} reg={r} eventId={event.id} groups={groups} />
               ))}
             </tbody>
           </table>
@@ -85,11 +99,61 @@ export default function EventDetail({ event, registrations, contacts }) {
   );
 }
 
-function RegistrationRow({ reg, eventId }) {
+function EventGroupManager({ eventId, groups, activeGroup, onSelect, total }) {
+  const { t } = useTranslation();
+  const [showAdd, setShowAdd] = useState(false);
+  const [state, action, pending] = useActionState(addEventGroup, {});
+  const [delPending, startDelTransition] = useTransition();
+
+  useEffect(() => {
+    if (state?.ok) setShowAdd(false);
+  }, [state?.ok]);
+
+  return (
+    <div className="mb-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" onClick={() => onSelect("all")}
+          className={"rounded-full px-3 py-1 text-sm transition-colors " + (activeGroup === "all" ? "bg-[var(--brand)] text-white" : "bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--background)]")}>
+          {t("common.all")} ({total})
+        </button>
+        {groups.map((g) => (
+          <span key={g.id} className="flex items-center gap-1">
+            <button type="button" onClick={() => onSelect(g.id)}
+              className={"rounded-full px-3 py-1 text-sm transition-colors " + (activeGroup === g.id ? "bg-[var(--brand)] text-white" : "bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--background)]")}>
+              {g.name}
+            </button>
+            <button type="button" disabled={delPending}
+              onClick={() => startDelTransition(() => deleteGroup(g.id, eventId))}
+              className="text-xs text-[var(--muted)] hover:text-red-600">✕</button>
+          </span>
+        ))}
+        <button type="button" onClick={() => onSelect("none")}
+          className={"rounded-full px-3 py-1 text-sm transition-colors " + (activeGroup === "none" ? "bg-[var(--brand)] text-white" : "bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--background)]")}>
+          {t("groups.none")}
+        </button>
+        <button type="button" onClick={() => setShowAdd((v) => !v)}
+          className="rounded-full border border-dashed border-[var(--border)] px-3 py-1 text-sm text-[var(--muted)] hover:border-[var(--brand)] hover:text-[var(--brand)]">
+          + {t("groups.add")}
+        </button>
+      </div>
+      {showAdd && (
+        <form action={action} className="mt-3 flex items-center gap-2">
+          <input type="hidden" name="event_id" value={eventId} />
+          <Input name="name" placeholder={t("groups.addPlaceholder")} className="max-w-xs" />
+          <Button type="submit" disabled={pending}>{t("common.add")}</Button>
+          <Button type="button" variant="secondary" onClick={() => setShowAdd(false)}>{t("common.cancel")}</Button>
+        </form>
+      )}
+    </div>
+  );
+}
+
+function RegistrationRow({ reg, eventId, groups }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const c = reg.contact || {};
   const owner = c.owner;
+  const group = (groups || []).find((g) => g.id === reg.group_id);
   const history = [...(reg.history || [])].sort(
     (a, b) => new Date(b.changed_at) - new Date(a.changed_at)
   );
@@ -111,6 +175,13 @@ function RegistrationRow({ reg, eventId }) {
             <Badge color="blue">{owner.full_name || owner.email}</Badge>
           ) : (
             <span className="text-xs text-[var(--muted)]">{t("bridge.noOwner")}</span>
+          )}
+        </td>
+        <td className="px-4 py-3">
+          {group ? (
+            <Badge color="purple">{group.name}</Badge>
+          ) : (
+            <span className="text-xs text-[var(--muted)]">—</span>
           )}
         </td>
         <td className="px-4 py-3">

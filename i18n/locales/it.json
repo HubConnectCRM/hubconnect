@@ -49,6 +49,7 @@
     "companies": "Aziende",
     "events": "Eventi",
     "sales": "Sales",
+    "leads": "Lead",
     "import": "Importa",
     "audit": "Registro modifiche",
     "settings": "Impostazioni"
@@ -61,7 +62,10 @@
     "attendance": "Partecipazione",
     "lastNote": "Ultima nota / azione",
     "empty": "Ancora nessuna partecipazione.",
-    "notSet": "Non impostato"
+    "notSet": "Non impostato",
+    "moveEvent": "Sposta a questo evento",
+    "openEvent": "Apri pagina evento",
+    "removeFromEvent": "Rimuovi dall'evento"
   },
   "roles": {
     "admin": "Admin",
@@ -235,6 +239,28 @@
       "source": "Origine",
       "notes": "Note"
     }
+  },
+  "leads": {
+    "title": "Lead",
+    "subtitle": "Pipeline di vendita non legate a eventi",
+    "new": "Nuovo file lead",
+    "empty": "Nessun file lead ancora.",
+    "contactsEmpty": "Nessun contatto in questo file.",
+    "addContact": "Aggiungi contatto a questo file",
+    "contacts": "Contatti",
+    "description": "Descrizione",
+    "deleteConfirm": "Eliminare questo file lead e tutti i suoi contatti?",
+    "created": "File lead creato.",
+    "updated": "File lead aggiornato.",
+    "alreadyAdded": "Questo contatto è già in questo file."
+  },
+  "groups": {
+    "label": "Sotto-gruppo",
+    "noGroup": "Nessun sotto-gruppo",
+    "add": "Aggiungi sotto-gruppo",
+    "addPlaceholder": "es. Sponsor, Startup, VIP",
+    "manage": "Gestisci sotto-gruppi",
+    "none": "Senza gruppo"
   },
   "audit": {
     "title": "Registro modifiche",

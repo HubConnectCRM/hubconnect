@@ -94,6 +94,7 @@ const badgeColors = {
   red: "bg-red-100 text-red-700",
   blue: "bg-blue-100 text-blue-700",
   pink: "bg-pink-100 text-pink-700",
+  purple: "bg-purple-100 text-purple-700",
 };
 
 export function Badge({ color = "gray", children }) {

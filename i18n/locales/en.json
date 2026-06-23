@@ -49,6 +49,7 @@
     "companies": "Companies",
     "events": "Events",
     "sales": "Sales",
+    "leads": "Leads",
     "import": "Import",
     "audit": "Audit log",
     "settings": "Settings"
@@ -61,7 +62,10 @@
     "attendance": "Attendance",
     "lastNote": "Last note / action",
     "empty": "No event participations yet.",
-    "notSet": "Not set"
+    "notSet": "Not set",
+    "moveEvent": "Move to this event",
+    "openEvent": "Open event page",
+    "removeFromEvent": "Remove from event"
   },
   "roles": {
     "admin": "Admin",
@@ -235,6 +239,28 @@
       "source": "Source",
       "notes": "Notes"
     }
+  },
+  "leads": {
+    "title": "Leads",
+    "subtitle": "Non-event sales pipelines — track prospects outside of events",
+    "new": "New lead file",
+    "empty": "No lead files yet. Create your first pipeline.",
+    "contactsEmpty": "No contacts in this file yet.",
+    "addContact": "Add contact to this file",
+    "contacts": "Contacts",
+    "description": "Description",
+    "deleteConfirm": "Delete this lead file and all its contacts?",
+    "created": "Lead file created.",
+    "updated": "Lead file updated.",
+    "alreadyAdded": "This contact is already in this file."
+  },
+  "groups": {
+    "label": "Sub-group",
+    "noGroup": "No sub-group",
+    "add": "Add sub-group",
+    "addPlaceholder": "e.g. Sponsors, Startups, VIP",
+    "manage": "Manage sub-groups",
+    "none": "Ungrouped"
   },
   "audit": {
     "title": "Audit log",
