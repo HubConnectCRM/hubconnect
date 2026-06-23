@@ -35,17 +35,17 @@ export function Field({ label, hint, children, required, className = "" }) {
 const inputCls =
   "w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:border-[var(--brand)] focus:ring-1 focus:ring-[var(--brand)]";
 
-export function Input(props) {
-  return <input className={inputCls} {...props} />;
+export function Input({ className = "", ...props }) {
+  return <input className={`${inputCls} ${className}`} {...props} />;
 }
 
-export function Textarea(props) {
-  return <textarea className={`${inputCls} min-h-20 resize-y`} {...props} />;
+export function Textarea({ className = "", ...props }) {
+  return <textarea className={`${inputCls} min-h-20 resize-y ${className}`} {...props} />;
 }
 
-export function Select({ children, ...props }) {
+export function Select({ className = "", children, ...props }) {
   return (
-    <select className={inputCls} {...props}>
+    <select className={`${inputCls} ${className}`} {...props}>
       {children}
     </select>
   );

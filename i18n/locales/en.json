@@ -197,7 +197,7 @@
     "rep": "Representative",
     "noReps": "No representatives yet.",
     "addRep": "Add representative",
-    "firstRep": "First representative (optional)",
+    "repCompanyHint": "defaults to the deal's company",
     "repExisting": "Existing contact",
     "repNew": "New person",
     "repAlready": "Already a representative.",

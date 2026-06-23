@@ -197,7 +197,7 @@
     "rep": "Temsilci",
     "noReps": "Henüz temsilci yok.",
     "addRep": "Temsilci ekle",
-    "firstRep": "İlk temsilci (isteğe bağlı)",
+    "repCompanyHint": "boşsa deal'in şirketi kullanılır",
     "repExisting": "Mevcut kişi",
     "repNew": "Yeni kişi",
     "repAlready": "Zaten temsilci.",

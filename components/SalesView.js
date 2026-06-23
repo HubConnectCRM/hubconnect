@@ -192,7 +192,7 @@ function SalesDealCard({ deal, events, contacts, defaultOpen = false }) {
           {/* Editable reps (sales can add reps / create contacts here) */}
           <p className="mb-2 text-sm font-semibold">{t("deals.repsTitle")}</p>
           <RepsTable reps={reps} leadFileId={deal.lead_file_id} />
-          <AddRepForm dealId={deal.id} leadFileId={deal.lead_file_id} contacts={contacts} />
+          <AddRepForm dealId={deal.id} leadFileId={deal.lead_file_id} contacts={contacts} source="sales" />
 
           <div className="mt-4 border-t border-[var(--border)] pt-4">
             <PushToEvent deal={deal} events={events} />

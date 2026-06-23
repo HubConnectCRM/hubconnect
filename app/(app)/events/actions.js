@@ -92,6 +92,7 @@ export async function addRegistration(prevState, formData) {
         email: clean(formData.get("email")),
         phone: clean(formData.get("phone")),
         job_title: clean(formData.get("job_title")),
+        linkedin: clean(formData.get("linkedin")),
         company_id: companyId,
         owner_id: user.id,
         source: clean(formData.get("registration_source")) || "event",

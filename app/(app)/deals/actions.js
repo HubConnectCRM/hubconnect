@@ -107,12 +107,17 @@ export async function addRep(prevState, formData) {
     const fullName = clean(formData.get("full_name"));
     if (!fullName) return { error: "name_required" };
 
-    // Inherit the deal's company for the new contact.
+    // Inherit the deal's company for the new contact (unless one is typed).
     const { data: deal } = await supabase
       .from("deals")
       .select("company_id, owner_id")
       .eq("id", dealId)
       .single();
+
+    const typedCompany = clean(formData.get("company_name"));
+    const companyId = typedCompany
+      ? await resolveCompany(supabase, typedCompany, user.id)
+      : deal?.company_id ?? null;
 
     const parts = fullName.split(/\s+/);
     const firstName = parts.shift() || fullName;
@@ -126,9 +131,10 @@ export async function addRep(prevState, formData) {
         email: clean(formData.get("email")),
         phone: clean(formData.get("phone")),
         job_title: clean(formData.get("job_title")),
-        company_id: deal?.company_id ?? null,
+        linkedin: clean(formData.get("linkedin")),
+        company_id: companyId,
         owner_id: deal?.owner_id ?? user.id,
-        source: "sales",
+        source: clean(formData.get("source")) || "sales",
         created_by: user.id,
       })
       .select("id")

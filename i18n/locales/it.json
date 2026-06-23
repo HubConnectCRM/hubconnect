@@ -197,7 +197,7 @@
     "rep": "Rappresentante",
     "noReps": "Ancora nessun rappresentante.",
     "addRep": "Aggiungi rappresentante",
-    "firstRep": "Primo rappresentante (facoltativo)",
+    "repCompanyHint": "predefinito: l'azienda del deal",
     "repExisting": "Contatto esistente",
     "repNew": "Nuova persona",
     "repAlready": "Già rappresentante.",

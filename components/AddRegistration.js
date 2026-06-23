@@ -54,23 +54,26 @@ export default function AddRegistration({ eventId, contacts, groups }) {
             </Field>
           </div>
         ) : (
-          <>
-            <Field label={t("common.fullName")}>
-              <Input name="full_name" className="w-44" />
+          <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <Field label={t("common.fullName")} required>
+              <Input name="full_name" />
             </Field>
             <Field label={t("contacts.company")}>
-              <Input name="company_name" className="w-40" />
-            </Field>
-            <Field label={t("common.email")}>
-              <Input name="email" type="email" className="w-44" />
-            </Field>
-            <Field label={t("common.phone")}>
-              <Input name="phone" className="w-32" />
+              <Input name="company_name" />
             </Field>
             <Field label={t("contacts.jobTitle")}>
-              <Input name="job_title" className="w-32" />
+              <Input name="job_title" />
             </Field>
-          </>
+            <Field label={t("common.email")}>
+              <Input name="email" type="email" />
+            </Field>
+            <Field label={t("common.phone")}>
+              <Input name="phone" />
+            </Field>
+            <Field label={t("contacts.linkedin")}>
+              <Input name="linkedin" placeholder="https://linkedin.com/in/…" />
+            </Field>
+          </div>
         )}
 
         {groupOpts.length > 0 && (

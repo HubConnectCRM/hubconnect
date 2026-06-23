@@ -170,7 +170,7 @@ function DealCard({ deal, leadFileId, groups, contacts, events, defaultOpen = fa
           {/* Representatives */}
           <p className="mb-2 text-sm font-semibold">{t("deals.repsTitle")}</p>
           <RepsTable reps={reps} leadFileId={leadFileId} />
-          <AddRepForm dealId={deal.id} leadFileId={leadFileId} contacts={contacts} />
+          <AddRepForm dealId={deal.id} leadFileId={leadFileId} contacts={contacts} source="leads" />
 
           {/* Push to event */}
           <div className="mt-4 border-t border-[var(--border)] pt-4">

@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { useTranslation } from "react-i18next";
-import { Button, Input } from "@/components/ui";
+import { Button, Field, Input } from "@/components/ui";
 import Combobox from "@/components/Combobox";
 import { addRep, removeRep, updateRep } from "@/app/(app)/deals/actions";
 
@@ -88,7 +88,7 @@ function RepRow({ rep, leadFileId }) {
 
 // Add-representative form: pick an existing contact or create a new person
 // (which becomes a real contact in the shared pool under the deal's company).
-export function AddRepForm({ dealId, leadFileId, contacts }) {
+export function AddRepForm({ dealId, leadFileId, contacts, source = "sales" }) {
   const { t } = useTranslation();
   const [state, action, pending] = useActionState(addRep, {});
   const [mode, setMode] = useState("existing"); // existing | new
@@ -114,28 +114,47 @@ export function AddRepForm({ dealId, leadFileId, contacts }) {
           ))}
         </div>
       </div>
-      <form action={action} className="flex flex-wrap items-end gap-2">
+      <form key={mode + (state?.ok || "")} action={action}>
         <input type="hidden" name="deal_id" value={dealId} />
         <input type="hidden" name="lead_file_id" value={leadFileId || ""} />
+        <input type="hidden" name="source" value={source} />
         {mode === "existing" ? (
-          <>
+          <div className="flex flex-wrap items-end gap-2">
             <input type="hidden" name="contact_id" value={contactId} />
             <div className="min-w-56 flex-1">
               <Combobox name="_rep_display" options={contactOpts} value={contactId} onChange={setContactId} placeholder={t("events.pickContact")} />
             </div>
             <Button type="submit" disabled={pending || !contactId}>{t("common.add")}</Button>
-          </>
+          </div>
         ) : (
           <>
-            <Input name="full_name" placeholder={t("common.fullName")} className="w-44" />
-            <Input name="email" type="email" placeholder={t("common.email")} className="w-44" />
-            <Input name="phone" placeholder={t("common.phone")} className="w-36" />
-            <Input name="job_title" placeholder={t("contacts.jobTitle")} className="w-36" />
-            <Button type="submit" disabled={pending}>{t("common.add")}</Button>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <Field label={t("common.fullName")} required>
+                <Input name="full_name" placeholder={t("common.fullName")} />
+              </Field>
+              <Field label={t("contacts.company")}>
+                <Input name="company_name" placeholder={t("deals.repCompanyHint")} />
+              </Field>
+              <Field label={t("contacts.jobTitle")}>
+                <Input name="job_title" />
+              </Field>
+              <Field label={t("common.email")}>
+                <Input name="email" type="email" />
+              </Field>
+              <Field label={t("common.phone")}>
+                <Input name="phone" />
+              </Field>
+              <Field label={t("contacts.linkedin")}>
+                <Input name="linkedin" placeholder="https://linkedin.com/in/…" />
+              </Field>
+            </div>
+            <div className="mt-2">
+              <Button type="submit" disabled={pending}>{t("common.add")}</Button>
+            </div>
           </>
         )}
-        {state?.error === "already_added" && <p className="w-full text-xs text-amber-700">{t("deals.repAlready")}</p>}
-        {state?.error === "name_required" && <p className="w-full text-xs text-red-700">{t("common.required")}</p>}
+        {state?.error === "already_added" && <p className="mt-1 text-xs text-amber-700">{t("deals.repAlready")}</p>}
+        {state?.error === "name_required" && <p className="mt-1 text-xs text-red-700">{t("common.required")}</p>}
       </form>
     </div>
   );
