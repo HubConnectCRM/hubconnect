@@ -65,7 +65,14 @@
     "notSet": "Belirlenmedi",
     "moveEvent": "Bu etkinliğe taşı",
     "openEvent": "Etkinlik sayfasını aç",
-    "removeFromEvent": "Etkinlikten çıkar"
+    "removeFromEvent": "Etkinlikten çıkar",
+    "addContact": "Etkinliğe veya lead dosyasına kişi ekle",
+    "allFiles": "Tüm dosyalar",
+    "file": "Etkinlik / Lead dosyası",
+    "typeEvent": "Etkinlik",
+    "typeLead": "Lead",
+    "openLeadFile": "Lead dosyasını aç",
+    "removeFromFile": "Dosyadan çıkar"
   },
   "roles": {
     "admin": "Yönetici",
@@ -259,6 +266,7 @@
     "noGroup": "Alt grup yok",
     "add": "Alt grup ekle",
     "addPlaceholder": "örn. Sponsorlar, Startuplar, VIP",
+    "firstGroup": "İlk alt grup adı",
     "manage": "Alt grupları yönet",
     "none": "Grupsuz"
   },

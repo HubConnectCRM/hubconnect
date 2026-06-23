@@ -67,6 +67,11 @@ function LeadFileForm({ file, onCancel }) {
       <Field label={t("leads.description")}>
         <Textarea name="description" defaultValue={file?.description || ""} rows={2} />
       </Field>
+      {!file && (
+        <Field label={`${t("groups.firstGroup")} (${t("common.optional")})`}>
+          <Input name="first_group" placeholder={t("groups.addPlaceholder")} />
+        </Field>
+      )}
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={pending}>
           {pending ? t("common.saving") : file ? t("common.save") : t("common.create")}

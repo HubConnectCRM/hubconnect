@@ -65,7 +65,14 @@
     "notSet": "Not set",
     "moveEvent": "Move to this event",
     "openEvent": "Open event page",
-    "removeFromEvent": "Remove from event"
+    "removeFromEvent": "Remove from event",
+    "addContact": "Add contact to event or lead file",
+    "allFiles": "All files",
+    "file": "Event / Lead file",
+    "typeEvent": "Event",
+    "typeLead": "Lead",
+    "openLeadFile": "Open lead file",
+    "removeFromFile": "Remove from file"
   },
   "roles": {
     "admin": "Admin",
@@ -259,6 +266,7 @@
     "noGroup": "No sub-group",
     "add": "Add sub-group",
     "addPlaceholder": "e.g. Sponsors, Startups, VIP",
+    "firstGroup": "First sub-group name",
     "manage": "Manage sub-groups",
     "none": "Ungrouped"
   },

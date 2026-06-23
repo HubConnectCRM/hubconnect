@@ -30,6 +30,16 @@ export async function saveLeadFile(prevState, formData) {
       .single();
     if (error) return { error: error.message };
     fileId = data.id;
+
+    // Create first group if provided
+    const firstGroup = clean(formData.get("first_group"));
+    if (firstGroup) {
+      await supabase.from("contact_groups").insert({
+        lead_file_id: fileId,
+        name: firstGroup,
+        created_by: user.id,
+      });
+    }
   }
 
   revalidatePath("/leads");
@@ -75,6 +85,12 @@ export async function updateLeadContact(id, updates, leadFileId) {
   const { supabase } = await requireProfile();
   await supabase.from("lead_contacts").update(updates).eq("id", id);
   revalidatePath(`/leads/${leadFileId}`);
+}
+
+export async function renameGroup(id, name, revalidate) {
+  const { supabase } = await requireProfile();
+  await supabase.from("contact_groups").update({ name }).eq("id", id);
+  if (revalidate) revalidatePath(revalidate);
 }
 
 export async function addLeadGroup(prevState, formData) {

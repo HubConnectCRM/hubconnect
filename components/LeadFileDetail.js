@@ -10,6 +10,7 @@ import {
   addLeadGroup,
   deleteLeadFile,
   removeLeadContact,
+  renameGroup,
   updateLeadContact,
 } from "@/app/(app)/leads/actions";
 import { deleteGroup } from "@/app/(app)/events/actions";
@@ -158,77 +159,70 @@ function AddLeadContactForm({ leadFileId, contacts, groups }) {
 function GroupManager({ leadFileId, groups, activeGroup, onSelect, total }) {
   const { t } = useTranslation();
   const [showAdd, setShowAdd] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState("");
   const [state, action, pending] = useActionState(addLeadGroup, {});
+  const [renamePending, startRename] = useTransition();
+  const [delPending, startDel] = useTransition();
 
-  useEffect(() => {
-    if (state?.ok) setShowAdd(false);
-  }, [state?.ok]);
+  useEffect(() => { if (state?.ok) setShowAdd(false); }, [state?.ok]);
+
+  function startEdit(g) { setEditingId(g.id); setEditName(g.name); }
+  function saveRename(id) {
+    if (!editName.trim()) return;
+    startRename(async () => {
+      await renameGroup(id, editName.trim(), `/leads/${leadFileId}`);
+      setEditingId(null);
+    });
+  }
+
+  const tabCls = (active) =>
+    "rounded-full px-3 py-1 text-sm transition-colors " +
+    (active ? "bg-[var(--brand)] text-white" : "bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--background)]");
 
   return (
     <div className="mb-4">
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={() => onSelect("all")}
-          className={
-            "rounded-full px-3 py-1 text-sm transition-colors " +
-            (activeGroup === "all"
-              ? "bg-[var(--brand)] text-white"
-              : "bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--background)]")
-          }
-        >
+        <button type="button" onClick={() => onSelect("all")} className={tabCls(activeGroup === "all")}>
           {t("common.all")} ({total})
         </button>
         {groups.map((g) => (
-          <button
-            key={g.id}
-            type="button"
-            onClick={() => onSelect(g.id)}
-            className={
-              "rounded-full px-3 py-1 text-sm transition-colors " +
-              (activeGroup === g.id
-                ? "bg-[var(--brand)] text-white"
-                : "bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--background)]")
-            }
-          >
-            {g.name}
-          </button>
+          <span key={g.id} className="flex items-center gap-1">
+            {editingId === g.id ? (
+              <span className="flex items-center gap-1">
+                <input autoFocus value={editName} onChange={(e) => setEditName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") saveRename(g.id); if (e.key === "Escape") setEditingId(null); }}
+                  className="rounded-full border border-[var(--brand)] px-3 py-1 text-sm outline-none w-32" />
+                <button type="button" onClick={() => saveRename(g.id)} disabled={renamePending}
+                  className="text-xs text-[var(--brand)] hover:underline">{t("common.save")}</button>
+                <button type="button" onClick={() => setEditingId(null)} className="text-xs text-[var(--muted)]">✕</button>
+              </span>
+            ) : (
+              <>
+                <button type="button" onClick={() => onSelect(g.id)} className={tabCls(activeGroup === g.id)}>
+                  {g.name}
+                </button>
+                <button type="button" onClick={() => startEdit(g)} className="text-xs text-[var(--muted)] hover:text-[var(--brand)]" title={t("common.edit")}>✎</button>
+                <button type="button" disabled={delPending} onClick={() => startDel(() => deleteGroup(g.id, null))}
+                  className="text-xs text-[var(--muted)] hover:text-red-600">✕</button>
+              </>
+            )}
+          </span>
         ))}
-        <button
-          type="button"
-          onClick={() => onSelect("none")}
-          className={
-            "rounded-full px-3 py-1 text-sm transition-colors " +
-            (activeGroup === "none"
-              ? "bg-[var(--brand)] text-white"
-              : "bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--background)]")
-          }
-        >
+        <button type="button" onClick={() => onSelect("none")} className={tabCls(activeGroup === "none")}>
           {t("groups.none")}
         </button>
-        <button
-          type="button"
-          onClick={() => setShowAdd((v) => !v)}
-          className="rounded-full border border-dashed border-[var(--border)] px-3 py-1 text-sm text-[var(--muted)] hover:border-[var(--brand)] hover:text-[var(--brand)]"
-        >
+        <button type="button" onClick={() => setShowAdd((v) => !v)}
+          className="rounded-full border border-dashed border-[var(--border)] px-3 py-1 text-sm text-[var(--muted)] hover:border-[var(--brand)] hover:text-[var(--brand)]">
           + {t("groups.add")}
         </button>
       </div>
-
       {showAdd && (
         <form action={action} className="mt-3 flex items-center gap-2">
           <input type="hidden" name="lead_file_id" value={leadFileId} />
-          <Input
-            name="name"
-            placeholder={t("groups.addPlaceholder")}
-            className="max-w-xs"
-          />
-          <Button type="submit" disabled={pending}>
-            {t("common.add")}
-          </Button>
-          <Button type="button" variant="secondary" onClick={() => setShowAdd(false)}>
-            {t("common.cancel")}
-          </Button>
+          <Input name="name" placeholder={t("groups.addPlaceholder")} className="max-w-xs" />
+          <Button type="submit" disabled={pending}>{t("common.add")}</Button>
+          <Button type="button" variant="secondary" onClick={() => setShowAdd(false)}>{t("common.cancel")}</Button>
         </form>
       )}
     </div>
