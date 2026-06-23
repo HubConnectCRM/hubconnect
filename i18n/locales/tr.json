@@ -177,6 +177,16 @@
       "no_show": "Gelmedi"
     }
   },
+  "rsvp": {
+    "label": "Katılım",
+    "yes": "Evet",
+    "no": "Hayır",
+    "maybe": "Belki",
+    "none": "Belirlenmedi",
+    "history": "Değişiklik geçmişi",
+    "details": "Detaylar",
+    "noHistory": "Henüz değişiklik yok."
+  },
   "import": {
     "title": "Kişileri içe aktar",
     "intro": "Mevcut bir tablodan kişileri içeri al (FILE SALES, Beauty Connect, NRF…). Bu tek seferlik bir göç aracıdır — günlük kullanımda kişileri uygulama içinde eklersin.",

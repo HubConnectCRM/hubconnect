@@ -70,6 +70,12 @@ export async function addRegistration(prevState, formData) {
   return { ok: Date.now() };
 }
 
+export async function setRsvp(id, rsvp, eventId) {
+  const { supabase } = await requireProfile();
+  await supabase.from("event_registrations").update({ rsvp }).eq("id", id);
+  revalidatePath(`/events/${eventId}`);
+}
+
 export async function updateRegistrationStatus(id, status, eventId) {
   const { supabase } = await requireProfile();
   await supabase.from("event_registrations").update({ status }).eq("id", id);

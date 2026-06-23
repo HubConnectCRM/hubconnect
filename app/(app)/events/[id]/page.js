@@ -17,9 +17,10 @@ export default async function EventPage({ params }) {
     supabase
       .from("event_registrations")
       .select(
-        "id, status, contact:contacts(id, full_name, company:companies(name), owner:profiles!contacts_owner_id_fkey(id, full_name, email))"
+        "id, status, rsvp, contact:contacts(id, full_name, job_title, email, phone, linkedin, source, company:companies(name), owner:profiles!contacts_owner_id_fkey(id, full_name, email)), history:registration_rsvp_history(rsvp, status, changed_at, changed_by:profiles(full_name))"
       )
-      .eq("event_id", id),
+      .eq("event_id", id)
+      .order("created_at", { ascending: true }),
     supabase
       .from("contacts")
       .select("id, full_name, company:companies(name)")

@@ -177,6 +177,16 @@
       "no_show": "Assente"
     }
   },
+  "rsvp": {
+    "label": "Partecipazione",
+    "yes": "Sì",
+    "no": "No",
+    "maybe": "Forse",
+    "none": "Non impostato",
+    "history": "Cronologia modifiche",
+    "details": "Dettagli",
+    "noHistory": "Ancora nessuna modifica."
+  },
   "import": {
     "title": "Importa contatti",
     "intro": "Importa contatti da un foglio esistente (FILE SALES, Beauty Connect, NRF…). È uno strumento di migrazione una tantum — nell'uso quotidiano aggiungi i contatti nell'app.",

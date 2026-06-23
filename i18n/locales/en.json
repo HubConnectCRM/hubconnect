@@ -177,6 +177,16 @@
       "no_show": "No show"
     }
   },
+  "rsvp": {
+    "label": "Attendance",
+    "yes": "Yes",
+    "no": "No",
+    "maybe": "Maybe",
+    "none": "Not set",
+    "history": "Change history",
+    "details": "Details",
+    "noHistory": "No changes yet."
+  },
   "import": {
     "title": "Import contacts",
     "intro": "Bring in contacts from an existing spreadsheet (FILE SALES, Beauty Connect, NRF…). This is a one-time migration tool — day-to-day you add contacts in the app.",
