@@ -19,9 +19,9 @@ export function Button({ variant = "primary", className = "", as, href, ...props
   return <button className={cls} {...props} />;
 }
 
-export function Field({ label, hint, children, required }) {
+export function Field({ label, hint, children, required, className = "" }) {
   return (
-    <label className="block">
+    <label className={`block ${className}`}>
       <span className="mb-1 flex items-center gap-1 text-sm font-medium">
         {label}
         {required && <span className="text-red-500">*</span>}

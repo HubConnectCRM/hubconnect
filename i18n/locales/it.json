@@ -176,6 +176,9 @@
   "deals": {
     "title": "Deal",
     "add": "Aggiungi deal",
+    "addDeal": "Aggiungi deal",
+    "addThenReps": "Aggiungi prima l'azienda — poi aggiungi le persone nel deal qui sotto.",
+    "repsTitle": "Rappresentanti",
     "empty": "Ancora nessun deal. Aggiungi un'azienda a cui stai vendendo.",
     "company": "Azienda",
     "companyPlaceholder": "Scegli o digita un'azienda",

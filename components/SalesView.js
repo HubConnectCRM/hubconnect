@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { Badge, Button, Card, EmptyState, Field, Input, PageHeader, Select } from "@/components/ui";
 import Combobox from "@/components/Combobox";
-import { AddRepForm, NewRepFields, RepsTable } from "@/components/DealReps";
+import { AddRepForm, RepsTable } from "@/components/DealReps";
 import { pushDealToEvent, saveDeal, setDealStage } from "@/app/(app)/deals/actions";
 
 const STAGES = ["prospect", "in_progress", "won", "lost"];
@@ -39,7 +39,7 @@ export default function SalesView({ deals, owners, events, leadFiles, companies,
       {/* Add deal (also lets sales create a lead file + contacts from here) */}
       <Card className="mb-4 p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--muted)]">{t("deals.add")}</h2>
-        <AddDealForm companies={companies} leadFiles={leadFiles} groups={groups} owners={owners} contacts={contacts} />
+        <AddDealForm companies={companies} leadFiles={leadFiles} groups={groups} owners={owners} />
       </Card>
 
       <div className="mb-4 flex flex-wrap gap-3">
@@ -72,14 +72,16 @@ export default function SalesView({ deals, owners, events, leadFiles, companies,
         <EmptyState>{q || owner || stage || file ? t("common.noResults") : t("sales.emptyDeals")}</EmptyState>
       ) : (
         <div className="space-y-3">
-          {filtered.map((d) => <SalesDealCard key={d.id} deal={d} events={events} contacts={contacts} />)}
+          {filtered.map((d, i) => (
+            <SalesDealCard key={d.id} deal={d} events={events} contacts={contacts} defaultOpen={i === 0 && (d.reps || []).length === 0} />
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-function AddDealForm({ companies, leadFiles, groups, owners, contacts }) {
+function AddDealForm({ companies, leadFiles, groups, owners }) {
   const { t } = useTranslation();
   const [state, action, pending] = useActionState(saveDeal, {});
   const [companyName, setCompanyName] = useState("");
@@ -97,49 +99,39 @@ function AddDealForm({ companies, leadFiles, groups, owners, contacts }) {
     : [];
 
   return (
-    <form key={formKey} action={action} className="flex flex-wrap items-end gap-3">
+    <form key={formKey} action={action} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <input type="hidden" name="company_name" value={companyName} />
       <input type="hidden" name="lead_file_id" value={isExistingFile ? fileValue : ""} />
       <input type="hidden" name="lead_file_name" value={isExistingFile ? "" : fileValue} />
       <input type="hidden" name="group_id" value={groupId} />
-      <div className="min-w-52 flex-1">
-        <Field label={t("deals.company")}>
-          <Combobox name="_company_display" options={companyOpts} value={companyName} onChange={setCompanyName} placeholder={t("deals.companyPlaceholder")} allowCustom />
-        </Field>
-      </div>
-      <div className="w-52">
-        <Field label={t("sales.fileOrNew")}>
-          <Combobox name="_file_display" options={fileOpts} value={fileValue} onChange={(v) => { setFileValue(v); setGroupId(""); }} placeholder={t("sales.pickOrNewFile")} allowCustom />
-        </Field>
-      </div>
+      <Field label={t("deals.company")} className="lg:col-span-2">
+        <Combobox name="_company_display" options={companyOpts} value={companyName} onChange={setCompanyName} placeholder={t("deals.companyPlaceholder")} allowCustom />
+      </Field>
+      <Field label={t("sales.fileOrNew")} className="lg:col-span-2">
+        <Combobox name="_file_display" options={fileOpts} value={fileValue} onChange={(v) => { setFileValue(v); setGroupId(""); }} placeholder={t("sales.pickOrNewFile")} allowCustom />
+      </Field>
       {groupOpts.length > 0 && (
-        <div className="w-40">
-          <Field label={t("groups.label")}>
-            <Combobox name="_group_display" options={groupOpts} value={groupId} onChange={setGroupId} placeholder={t("groups.noGroup")} />
-          </Field>
-        </div>
+        <Field label={t("groups.label")}>
+          <Combobox name="_group_display" options={groupOpts} value={groupId} onChange={setGroupId} placeholder={t("groups.noGroup")} />
+        </Field>
       )}
-      <div className="w-40">
-        <Field label={t("deals.owner")}>
-          <Select name="owner_id" defaultValue="">
-            <option value="">{t("deals.me")}</option>
-            {owners.map((o) => <option key={o.id} value={o.id}>{o.full_name || o.email}</option>)}
-          </Select>
-        </Field>
+      <Field label={t("deals.owner")}>
+        <Select name="owner_id" defaultValue="">
+          <option value="">{t("deals.me")}</option>
+          {owners.map((o) => <option key={o.id} value={o.id}>{o.full_name || o.email}</option>)}
+        </Select>
+      </Field>
+      <Field label={t("deals.stage")}>
+        <Select name="stage" defaultValue="prospect">
+          {STAGES.map((s) => <option key={s} value={s}>{t(`deals.stages.${s}`)}</option>)}
+        </Select>
+      </Field>
+      <div className="flex items-end">
+        <Button type="submit" disabled={pending || !companyName || !fileValue} className="w-full">{t("deals.addDeal")}</Button>
       </div>
-      <div className="w-40">
-        <Field label={t("deals.stage")}>
-          <Select name="stage" defaultValue="prospect">
-            {STAGES.map((s) => <option key={s} value={s}>{t(`deals.stages.${s}`)}</option>)}
-          </Select>
-        </Field>
-      </div>
-      <div className="mt-1 w-full rounded-lg border border-dashed border-[var(--border)] p-3">
-        <NewRepFields contacts={contacts} />
-      </div>
-      <Button type="submit" disabled={pending || !companyName || !fileValue}>{t("common.add")}</Button>
+      <p className="text-xs text-[var(--muted)] sm:col-span-2 lg:col-span-4">{t("deals.addThenReps")}</p>
       {state?.error && (
-        <p className="w-full text-sm text-red-700">
+        <p className="text-sm text-red-700 sm:col-span-2 lg:col-span-4">
           {state.error === "company_required" ? t("deals.companyRequired")
             : state.error === "file_required" ? t("sales.fileRequired")
             : state.error}
@@ -149,9 +141,9 @@ function AddDealForm({ companies, leadFiles, groups, owners, contacts }) {
   );
 }
 
-function SalesDealCard({ deal, events, contacts }) {
+function SalesDealCard({ deal, events, contacts, defaultOpen = false }) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [stagePending, startStage] = useTransition();
   const reps = deal.reps || [];
   const companyLabel = deal.company?.name || deal.company_name || "—";
@@ -198,6 +190,7 @@ function SalesDealCard({ deal, events, contacts }) {
           </div>
 
           {/* Editable reps (sales can add reps / create contacts here) */}
+          <p className="mb-2 text-sm font-semibold">{t("deals.repsTitle")}</p>
           <RepsTable reps={reps} leadFileId={deal.lead_file_id} />
           <AddRepForm dealId={deal.id} leadFileId={deal.lead_file_id} contacts={contacts} />
 

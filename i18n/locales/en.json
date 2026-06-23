@@ -176,6 +176,9 @@
   "deals": {
     "title": "Deals",
     "add": "Add deal",
+    "addDeal": "Add deal",
+    "addThenReps": "Add the company first — then add its people in the deal card below.",
+    "repsTitle": "Representatives",
     "empty": "No deals yet. Add a company you're selling to.",
     "company": "Company",
     "companyPlaceholder": "Pick or type a company",

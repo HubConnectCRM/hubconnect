@@ -66,40 +66,8 @@ export async function saveDeal(prevState, formData) {
   } else {
     row.lead_file_id = leadFileId;
     row.created_by = user.id;
-    const { data: deal, error } = await supabase
-      .from("deals")
-      .insert(row)
-      .select("id")
-      .single();
+    const { error } = await supabase.from("deals").insert(row);
     if (error) return { error: error.message };
-
-    // Optional first representative typed/picked in the Add-deal form.
-    let repContactId = clean(formData.get("rep_contact_id"));
-    const repFullName = clean(formData.get("rep_full_name"));
-    if (!repContactId && repFullName) {
-      const parts = repFullName.split(/\s+/);
-      const { data: created } = await supabase
-        .from("contacts")
-        .insert({
-          first_name: parts.shift() || repFullName,
-          last_name: parts.join(" ") || null,
-          email: clean(formData.get("rep_email")),
-          phone: clean(formData.get("rep_phone")),
-          job_title: clean(formData.get("rep_job_title")),
-          company_id: companyId,
-          owner_id: row.owner_id,
-          source: "sales",
-          created_by: user.id,
-        })
-        .select("id")
-        .single();
-      repContactId = created?.id ?? null;
-    }
-    if (repContactId) {
-      await supabase
-        .from("deal_reps")
-        .insert({ deal_id: deal.id, contact_id: repContactId });
-    }
   }
 
   if (leadFileId) revalidatePath(`/leads/${leadFileId}`);

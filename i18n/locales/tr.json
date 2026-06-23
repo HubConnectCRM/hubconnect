@@ -176,6 +176,9 @@
   "deals": {
     "title": "Deal'ler",
     "add": "Deal ekle",
+    "addDeal": "Deal ekle",
+    "addThenReps": "Önce şirketi ekle — sonra aşağıdaki deal kartından kişileri ekle.",
+    "repsTitle": "Temsilciler",
     "empty": "Henüz deal yok. Satış yaptığın bir şirket ekle.",
     "company": "Şirket",
     "companyPlaceholder": "Şirket seç veya yaz",

@@ -2,52 +2,9 @@
 
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { useTranslation } from "react-i18next";
-import { Badge, Button, Input } from "@/components/ui";
+import { Button, Input } from "@/components/ui";
 import Combobox from "@/components/Combobox";
 import { addRep, removeRep, updateRep } from "@/app/(app)/deals/actions";
-
-// Inline "first representative" picker for the Add-deal form (Leads & Sales).
-// Mirrors the Events "Existing contact / New person" toggle. Renders fields
-// prefixed rep_* that saveDeal reads to attach a first rep to the new deal.
-export function NewRepFields({ contacts }) {
-  const { t } = useTranslation();
-  const [mode, setMode] = useState("new"); // new | existing
-  const [contactId, setContactId] = useState("");
-
-  const contactOpts = contacts.map((c) => ({
-    value: c.id,
-    label: c.full_name + (c.company?.name ? ` · ${c.company.name}` : ""),
-  }));
-
-  return (
-    <div className="w-full">
-      <div className="mb-2 flex items-center gap-2">
-        <p className="text-xs font-semibold text-[var(--muted)]">{t("deals.firstRep")}</p>
-        <div className="flex overflow-hidden rounded-lg border border-[var(--border)]">
-          {["new", "existing"].map((m) => (
-            <button key={m} type="button" onClick={() => setMode(m)}
-              className={"px-2 py-0.5 text-xs transition-colors " + (mode === m ? "bg-[var(--brand)] text-white" : "text-[var(--muted)] hover:bg-[var(--background)]")}>
-              {t(`deals.${m === "existing" ? "repExisting" : "repNew"}`)}
-            </button>
-          ))}
-        </div>
-      </div>
-      <input type="hidden" name="rep_contact_id" value={mode === "existing" ? contactId : ""} />
-      {mode === "existing" ? (
-        <div className="max-w-md">
-          <Combobox name="_rep_pick" options={contactOpts} value={contactId} onChange={setContactId} placeholder={t("events.pickContact")} />
-        </div>
-      ) : (
-        <div className="flex flex-wrap items-end gap-2">
-          <Input name="rep_full_name" placeholder={t("common.fullName")} className="w-44" />
-          <Input name="rep_email" type="email" placeholder={t("common.email")} className="w-44" />
-          <Input name="rep_phone" placeholder={t("common.phone")} className="w-36" />
-          <Input name="rep_job_title" placeholder={t("contacts.jobTitle")} className="w-36" />
-        </div>
-      )}
-    </div>
-  );
-}
 
 // Editable representatives table for a deal. Used in both Leads and Sales.
 export function RepsTable({ reps, leadFileId }) {

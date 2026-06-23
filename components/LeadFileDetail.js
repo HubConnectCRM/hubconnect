@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Badge, Button, Card, EmptyState, Field, Input, PageHeader, Select } from "@/components/ui";
 import Combobox from "@/components/Combobox";
 import DeleteButton from "@/components/DeleteButton";
-import { AddRepForm, NewRepFields, RepsTable } from "@/components/DealReps";
+import { AddRepForm, RepsTable } from "@/components/DealReps";
 import {
   addLeadGroup,
   deleteLeadFile,
@@ -47,7 +47,7 @@ export default function LeadFileDetail({ file, deals, groups, companies, contact
 
       <Card className="mb-4 p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--muted)]">{t("deals.add")}</h2>
-        <AddDealForm leadFileId={file.id} companies={companies} groups={groups} owners={owners} contacts={contacts} />
+        <AddDealForm leadFileId={file.id} companies={companies} groups={groups} owners={owners} />
       </Card>
 
       <GroupManager leadFileId={file.id} groups={groups} activeGroup={activeGroup} onSelect={setActiveGroup} total={deals.length} />
@@ -58,7 +58,7 @@ export default function LeadFileDetail({ file, deals, groups, companies, contact
         <EmptyState>{t("deals.empty")}</EmptyState>
       ) : (
         <div className="space-y-3">
-          {filtered.map((d) => (
+          {filtered.map((d, i) => (
             <DealCard
               key={d.id}
               deal={d}
@@ -66,6 +66,7 @@ export default function LeadFileDetail({ file, deals, groups, companies, contact
               groups={groups}
               contacts={contacts}
               events={events}
+              defaultOpen={i === 0 && (d.reps || []).length === 0}
             />
           ))}
         </div>
@@ -74,7 +75,7 @@ export default function LeadFileDetail({ file, deals, groups, companies, contact
   );
 }
 
-function AddDealForm({ leadFileId, companies, groups, owners, contacts }) {
+function AddDealForm({ leadFileId, companies, groups, owners }) {
   const { t } = useTranslation();
   const [state, action, pending] = useActionState(saveDeal, {});
   const [companyName, setCompanyName] = useState("");
@@ -87,56 +88,48 @@ function AddDealForm({ leadFileId, companies, groups, owners, contacts }) {
   const groupOpts = groups.map((g) => ({ value: g.id, label: g.name }));
 
   return (
-    <form key={formKey} action={action} className="flex flex-wrap items-end gap-3">
+    <form key={formKey} action={action} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <input type="hidden" name="lead_file_id" value={leadFileId} />
       <input type="hidden" name="company_name" value={companyName} />
       <input type="hidden" name="group_id" value={groupId} />
-      <div className="min-w-56 flex-1">
-        <Field label={t("deals.company")}>
-          <Combobox
-            name="_company_display"
-            options={companyOpts}
-            value={companyName}
-            onChange={setCompanyName}
-            placeholder={t("deals.companyPlaceholder")}
-            allowCustom
-          />
-        </Field>
+      <Field label={t("deals.company")} className="lg:col-span-2">
+        <Combobox
+          name="_company_display"
+          options={companyOpts}
+          value={companyName}
+          onChange={setCompanyName}
+          placeholder={t("deals.companyPlaceholder")}
+          allowCustom
+        />
+      </Field>
+      <Field label={t("groups.label")}>
+        <Combobox name="_group_display" options={groupOpts} value={groupId} onChange={setGroupId} placeholder={t("groups.noGroup")} />
+      </Field>
+      <Field label={t("deals.owner")}>
+        <Select name="owner_id" defaultValue="">
+          <option value="">{t("deals.me")}</option>
+          {owners.map((o) => <option key={o.id} value={o.id}>{o.full_name || o.email}</option>)}
+        </Select>
+      </Field>
+      <Field label={t("deals.stage")}>
+        <Select name="stage" defaultValue="prospect">
+          {STAGES.map((s) => <option key={s} value={s}>{t(`deals.stages.${s}`)}</option>)}
+        </Select>
+      </Field>
+      <div className="flex items-end sm:col-span-2 lg:col-span-3">
+        <p className="text-xs text-[var(--muted)]">{t("deals.addThenReps")}</p>
       </div>
-      {groupOpts.length > 0 && (
-        <div className="w-44">
-          <Field label={t("groups.label")}>
-            <Combobox name="_group_display" options={groupOpts} value={groupId} onChange={setGroupId} placeholder={t("groups.noGroup")} />
-          </Field>
-        </div>
-      )}
-      <div className="w-44">
-        <Field label={t("deals.owner")}>
-          <Select name="owner_id" defaultValue="">
-            <option value="">{t("deals.me")}</option>
-            {owners.map((o) => <option key={o.id} value={o.id}>{o.full_name || o.email}</option>)}
-          </Select>
-        </Field>
+      <div className="flex items-end justify-end">
+        <Button type="submit" disabled={pending || !companyName} className="w-full">{t("deals.addDeal")}</Button>
       </div>
-      <div className="w-40">
-        <Field label={t("deals.stage")}>
-          <Select name="stage" defaultValue="prospect">
-            {STAGES.map((s) => <option key={s} value={s}>{t(`deals.stages.${s}`)}</option>)}
-          </Select>
-        </Field>
-      </div>
-      <div className="mt-1 w-full rounded-lg border border-dashed border-[var(--border)] p-3">
-        <NewRepFields contacts={contacts} />
-      </div>
-      <Button type="submit" disabled={pending || !companyName}>{t("common.add")}</Button>
-      {state?.error && <p className="w-full text-sm text-red-700">{state.error === "company_required" ? t("deals.companyRequired") : state.error}</p>}
+      {state?.error && <p className="text-sm text-red-700 sm:col-span-2 lg:col-span-4">{state.error === "company_required" ? t("deals.companyRequired") : state.error}</p>}
     </form>
   );
 }
 
-function DealCard({ deal, leadFileId, groups, contacts, events }) {
+function DealCard({ deal, leadFileId, groups, contacts, events, defaultOpen = false }) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [pending, startTransition] = useTransition();
   const reps = deal.reps || [];
   const group = groups.find((g) => g.id === deal.group_id);
@@ -174,10 +167,9 @@ function DealCard({ deal, leadFileId, groups, contacts, events }) {
             </button>
           </div>
 
-          {/* Reps table */}
+          {/* Representatives */}
+          <p className="mb-2 text-sm font-semibold">{t("deals.repsTitle")}</p>
           <RepsTable reps={reps} leadFileId={leadFileId} />
-
-          {/* Add rep */}
           <AddRepForm dealId={deal.id} leadFileId={leadFileId} contacts={contacts} />
 
           {/* Push to event */}
