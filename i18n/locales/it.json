@@ -48,9 +48,20 @@
     "contacts": "Contatti",
     "companies": "Aziende",
     "events": "Eventi",
+    "sales": "Sales",
     "import": "Importa",
     "audit": "Registro modifiche",
     "settings": "Impostazioni"
+  },
+  "sales": {
+    "title": "Sales",
+    "subtitle": "Tutti i contatti di tutti gli eventi — filtra per referente",
+    "allEvents": "Tutti gli eventi",
+    "event": "Evento",
+    "attendance": "Partecipazione",
+    "lastNote": "Ultima nota / azione",
+    "empty": "Ancora nessuna partecipazione.",
+    "notSet": "Non impostato"
   },
   "roles": {
     "admin": "Admin",
@@ -185,7 +196,11 @@
     "none": "Non impostato",
     "history": "Cronologia modifiche",
     "details": "Dettagli",
-    "noHistory": "Ancora nessuna modifica."
+    "noHistory": "Ancora nessuna modifica.",
+    "note": "Nota / motivo",
+    "confirm": "Conferma",
+    "lastNote": "Ultima nota",
+    "willCome": "Parteciperà"
   },
   "import": {
     "title": "Importa contatti",

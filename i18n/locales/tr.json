@@ -48,9 +48,20 @@
     "contacts": "Kişiler",
     "companies": "Şirketler",
     "events": "Etkinlikler",
+    "sales": "Sales",
     "import": "İçe aktar",
     "audit": "Denetim kaydı",
     "settings": "Ayarlar"
+  },
+  "sales": {
+    "title": "Sales",
+    "subtitle": "Tüm etkinliklerdeki tüm kişiler — sales'çiye göre filtrele",
+    "allEvents": "Tüm etkinlikler",
+    "event": "Etkinlik",
+    "attendance": "Katılım",
+    "lastNote": "Son not / aksiyon",
+    "empty": "Henüz etkinlik katılımı yok.",
+    "notSet": "Belirlenmedi"
   },
   "roles": {
     "admin": "Yönetici",
@@ -185,7 +196,11 @@
     "none": "Belirlenmedi",
     "history": "Değişiklik geçmişi",
     "details": "Detaylar",
-    "noHistory": "Henüz değişiklik yok."
+    "noHistory": "Henüz değişiklik yok.",
+    "note": "Not / sebep",
+    "confirm": "Onayla",
+    "lastNote": "Son not",
+    "willCome": "Gelecek"
   },
   "import": {
     "title": "Kişileri içe aktar",

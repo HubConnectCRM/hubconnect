@@ -183,6 +183,8 @@ create table if not exists event_registrations (
   contact_id    uuid not null references contacts(id) on delete cascade,
   status        event_reg_status not null default 'desiderata',
   rsvp          text check (rsvp in ('yes', 'no', 'maybe')),
+  last_note     text,
+  last_activity_at timestamptz,
   requested_by  uuid references profiles(id),
   response_date date,
   gdpr_consent  boolean not null default false,
@@ -318,6 +320,7 @@ create table if not exists registration_rsvp_history (
   registration_id uuid not null references event_registrations(id) on delete cascade,
   rsvp            text,
   status          event_reg_status,
+  note            text,
   changed_by      uuid references profiles(id),
   changed_at      timestamptz not null default now()
 );
@@ -332,24 +335,5 @@ drop policy if exists rsvp_hist_insert on registration_rsvp_history;
 create policy rsvp_hist_insert on registration_rsvp_history
   for insert to authenticated with check (true);
 
-create or replace function log_rsvp_change()
-returns trigger language plpgsql security definer set search_path = public as $$
-begin
-  if (tg_op = 'INSERT') then
-    if new.rsvp is not null then
-      insert into registration_rsvp_history(registration_id, rsvp, status, changed_by)
-      values (new.id, new.rsvp, new.status, auth.uid());
-    end if;
-  elsif (tg_op = 'UPDATE') then
-    if new.rsvp is distinct from old.rsvp then
-      insert into registration_rsvp_history(registration_id, rsvp, status, changed_by)
-      values (new.id, new.rsvp, new.status, auth.uid());
-    end if;
-  end if;
-  return new;
-end $$;
-
-drop trigger if exists trg_rsvp_history on event_registrations;
-create trigger trg_rsvp_history
-  after insert or update on event_registrations
-  for each row execute function log_rsvp_change();
+-- Attendance changes are logged explicitly (with a note) from the server
+-- action confirmRsvp(), so each history row carries the reason text.

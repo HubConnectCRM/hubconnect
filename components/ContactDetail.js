@@ -6,10 +6,13 @@ import { Badge, Button, Card, PageHeader } from "@/components/ui";
 import DeleteButton from "@/components/DeleteButton";
 import Timeline from "@/components/Timeline";
 import AddInteraction from "@/components/AddInteraction";
+import AddToEvent from "@/components/AddToEvent";
 import { deleteContact } from "@/app/(app)/contacts/actions";
 import { STATUS_COLORS } from "@/lib/constants";
 
-export default function ContactDetail({ contact, interactions, registrations }) {
+const RSVP_COLOR = { yes: "green", no: "red", maybe: "amber" };
+
+export default function ContactDetail({ contact, interactions, registrations, events }) {
   const { t } = useTranslation();
   const location = [contact.city, contact.country].filter(Boolean).join(", ");
 
@@ -105,20 +108,30 @@ export default function ContactDetail({ contact, interactions, registrations }) 
             ) : (
               <ul className="space-y-2">
                 {registrations.map((r) => (
-                  <li key={r.id} className="flex items-center justify-between">
+                  <li key={r.id} className="flex items-center justify-between gap-2">
                     <Link
                       href={`/events/${r.event?.id}`}
                       className="text-sm hover:underline"
                     >
                       {r.event?.name}
                     </Link>
-                    <Badge color={STATUS_COLORS[r.status]}>
-                      {t(`bridge.statuses.${r.status}`)}
-                    </Badge>
+                    <span className="flex items-center gap-1">
+                      {r.rsvp && (
+                        <Badge color={RSVP_COLOR[r.rsvp]}>{t(`rsvp.${r.rsvp}`)}</Badge>
+                      )}
+                      <Badge color={STATUS_COLORS[r.status]}>
+                        {t(`bridge.statuses.${r.status}`)}
+                      </Badge>
+                    </span>
                   </li>
                 ))}
               </ul>
             )}
+            <AddToEvent
+              contactId={contact.id}
+              events={events}
+              existingEventIds={registrations.map((r) => r.event?.id).filter(Boolean)}
+            />
           </Card>
         </div>
 

@@ -16,24 +16,27 @@ export default async function ContactPage({ params }) {
 
   if (!contact) notFound();
 
-  const [{ data: interactions }, { data: registrations }] = await Promise.all([
-    supabase
-      .from("interactions")
-      .select("*, user:profiles(id, full_name, email)")
-      .eq("contact_id", id)
-      .order("occurred_on", { ascending: false })
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("event_registrations")
-      .select("id, status, event:events(id, name, start_date)")
-      .eq("contact_id", id),
-  ]);
+  const [{ data: interactions }, { data: registrations }, { data: events }] =
+    await Promise.all([
+      supabase
+        .from("interactions")
+        .select("*, user:profiles(id, full_name, email)")
+        .eq("contact_id", id)
+        .order("occurred_on", { ascending: false })
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("event_registrations")
+        .select("id, status, rsvp, event:events(id, name, start_date)")
+        .eq("contact_id", id),
+      supabase.from("events").select("id, name").order("name").limit(2000),
+    ]);
 
   return (
     <ContactDetail
       contact={contact}
       interactions={interactions || []}
       registrations={registrations || []}
+      events={events || []}
     />
   );
 }

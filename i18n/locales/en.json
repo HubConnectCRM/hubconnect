@@ -48,9 +48,20 @@
     "contacts": "Contacts",
     "companies": "Companies",
     "events": "Events",
+    "sales": "Sales",
     "import": "Import",
     "audit": "Audit log",
     "settings": "Settings"
+  },
+  "sales": {
+    "title": "Sales",
+    "subtitle": "Every contact across all events — filter by salesperson",
+    "allEvents": "All events",
+    "event": "Event",
+    "attendance": "Attendance",
+    "lastNote": "Last note / action",
+    "empty": "No event participations yet.",
+    "notSet": "Not set"
   },
   "roles": {
     "admin": "Admin",
@@ -185,7 +196,11 @@
     "none": "Not set",
     "history": "Change history",
     "details": "Details",
-    "noHistory": "No changes yet."
+    "noHistory": "No changes yet.",
+    "note": "Note / reason",
+    "confirm": "Confirm",
+    "lastNote": "Last note",
+    "willCome": "Will attend"
   },
   "import": {
     "title": "Import contacts",

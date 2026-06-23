@@ -70,10 +70,38 @@ export async function addRegistration(prevState, formData) {
   return { ok: Date.now() };
 }
 
-export async function setRsvp(id, rsvp, eventId) {
-  const { supabase } = await requireProfile();
-  await supabase.from("event_registrations").update({ rsvp }).eq("id", id);
+// Set attendance + optional note, and log the change to history (who/when/what).
+export async function confirmRsvp(prevState, formData) {
+  const { supabase, user } = await requireProfile();
+  const id = clean(formData.get("reg_id"));
+  const eventId = clean(formData.get("event_id"));
+  const rsvp = clean(formData.get("rsvp"));
+  const note = clean(formData.get("note"));
+  if (!id) return { error: "missing" };
+
+  const { data: reg } = await supabase
+    .from("event_registrations")
+    .select("status")
+    .eq("id", id)
+    .single();
+
+  const { error } = await supabase
+    .from("event_registrations")
+    .update({ rsvp, last_note: note, last_activity_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) return { error: error.message };
+
+  await supabase.from("registration_rsvp_history").insert({
+    registration_id: id,
+    rsvp,
+    status: reg?.status ?? null,
+    note,
+    changed_by: user.id,
+  });
+
   revalidatePath(`/events/${eventId}`);
+  revalidatePath("/sales");
+  return { ok: Date.now() };
 }
 
 export async function updateRegistrationStatus(id, status, eventId) {
