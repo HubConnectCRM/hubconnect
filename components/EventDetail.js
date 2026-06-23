@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { useTranslation } from "react-i18next";
-import { Badge, Button, Card, EmptyState, Input, PageHeader, Textarea } from "@/components/ui";
+import { Badge, Button, Card, EmptyState, Input, PageHeader, Select, Textarea } from "@/components/ui";
 import DeleteButton from "@/components/DeleteButton";
 import AddRegistration from "@/components/AddRegistration";
 import {
@@ -18,19 +18,25 @@ import { EVENT_REG_STATUSES } from "@/lib/constants";
 
 const RSVP_COLOR = { yes: "green", no: "red", maybe: "amber" };
 
-export default function EventDetail({ event, registrations, contacts, groups }) {
+export default function EventDetail({ event, registrations, contacts, groups, owners }) {
   const { t } = useTranslation();
   const info = [event.location, event.start_date, event.end_date]
     .filter(Boolean)
     .join(" · ");
   const [activeGroup, setActiveGroup] = useState("all");
+  const [ownerFilter, setOwnerFilter] = useState("");
+  const [sourceFilter, setSourceFilter] = useState("");
+  const [rsvpFilter, setRsvpFilter] = useState("");
 
-  const filtered =
-    activeGroup === "all"
-      ? registrations
-      : activeGroup === "none"
-      ? registrations.filter((r) => !r.group_id)
-      : registrations.filter((r) => r.group_id === activeGroup);
+  const filtered = registrations.filter((r) => {
+    if (activeGroup === "none" && r.group_id) return false;
+    if (activeGroup !== "all" && activeGroup !== "none" && r.group_id !== activeGroup) return false;
+    if (ownerFilter && r.requested_by !== ownerFilter) return false;
+    if (sourceFilter && (r.registration_source || "event") !== sourceFilter) return false;
+    if (rsvpFilter === "none" && r.rsvp) return false;
+    if (rsvpFilter && rsvpFilter !== "none" && r.rsvp !== rsvpFilter) return false;
+    return true;
+  });
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -67,6 +73,34 @@ export default function EventDetail({ event, registrations, contacts, groups }) 
       {/* Group tabs */}
       <EventGroupManager eventId={event.id} groups={groups} activeGroup={activeGroup} onSelect={setActiveGroup} total={registrations.length} />
 
+      {/* Filters: responsible person / source / rsvp */}
+      <div className="mb-4 flex flex-wrap gap-3">
+        <div className="w-52">
+          <Select value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)}>
+            <option value="">{t("events.allResponsible")}</option>
+            {owners.map((o) => (
+              <option key={o.id} value={o.id}>{o.full_name || o.email}</option>
+            ))}
+          </Select>
+        </div>
+        <div className="w-40">
+          <Select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)}>
+            <option value="">{t("events.allSources")}</option>
+            <option value="event">{t("events.sourceEvent")}</option>
+            <option value="sales">{t("events.sourceSales")}</option>
+          </Select>
+        </div>
+        <div className="w-40">
+          <Select value={rsvpFilter} onChange={(e) => setRsvpFilter(e.target.value)}>
+            <option value="">{t("events.allRsvp")}</option>
+            <option value="yes">{t("rsvp.yes")}</option>
+            <option value="no">{t("rsvp.no")}</option>
+            <option value="maybe">{t("rsvp.maybe")}</option>
+            <option value="none">{t("rsvp.none")}</option>
+          </Select>
+        </div>
+      </div>
+
       <h2 className="mb-3 text-lg font-semibold">
         {t("events.registrations")} ({filtered.length})
       </h2>
@@ -81,7 +115,8 @@ export default function EventDetail({ event, registrations, contacts, groups }) 
                 <th className="px-4 py-3 font-medium">{t("common.name")}</th>
                 <th className="px-4 py-3 font-medium">{t("contacts.company")}</th>
                 <th className="px-4 py-3 font-medium">{t("common.phone")}</th>
-                <th className="px-4 py-3 font-medium">{t("bridge.owner")}</th>
+                <th className="px-4 py-3 font-medium">{t("events.responsible")}</th>
+                <th className="px-4 py-3 font-medium">{t("events.source")}</th>
                 <th className="px-4 py-3 font-medium">{t("groups.label")}</th>
                 <th className="px-4 py-3 font-medium">{t("rsvp.label")}</th>
                 <th className="px-4 py-3"></th>
@@ -152,7 +187,8 @@ function RegistrationRow({ reg, eventId, groups }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const c = reg.contact || {};
-  const owner = c.owner;
+  const responsible = reg.responsible;
+  const source = reg.registration_source || "event";
   const group = (groups || []).find((g) => g.id === reg.group_id);
   const history = [...(reg.history || [])].sort(
     (a, b) => new Date(b.changed_at) - new Date(a.changed_at)
@@ -171,11 +207,16 @@ function RegistrationRow({ reg, eventId, groups }) {
           {c.phone ? <a href={`tel:${c.phone}`} className="hover:underline">{c.phone}</a> : "—"}
         </td>
         <td className="px-4 py-3">
-          {owner ? (
-            <Badge color="blue">{owner.full_name || owner.email}</Badge>
+          {responsible ? (
+            <Badge color="blue">{responsible.full_name || responsible.email}</Badge>
           ) : (
-            <span className="text-xs text-[var(--muted)]">{t("bridge.noOwner")}</span>
+            <span className="text-xs text-[var(--muted)]">—</span>
           )}
+        </td>
+        <td className="px-4 py-3">
+          <Badge color={source === "sales" ? "green" : "gray"}>
+            {source === "sales" ? t("events.sourceSales") : t("events.sourceEvent")}
+          </Badge>
         </td>
         <td className="px-4 py-3">
           {group ? (
@@ -204,7 +245,7 @@ function RegistrationRow({ reg, eventId, groups }) {
 
       {open && (
         <tr className="border-b border-[var(--border)] bg-[var(--background)]">
-          <td colSpan={6} className="px-4 py-4">
+          <td colSpan={8} className="px-4 py-4">
             <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
               <div className="space-y-1 text-sm">
                 <Info label={t("contacts.jobTitle")} value={c.job_title} />

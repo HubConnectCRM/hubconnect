@@ -1,6 +1,4 @@
-import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
-import { Card, EmptyState, PageHeader, Button } from "@/components/ui";
 import LeadFilesView from "@/components/LeadFilesView";
 
 export default async function LeadsPage() {
@@ -11,13 +9,11 @@ export default async function LeadsPage() {
     .select("id, name, description, created_at, created_by:profiles(full_name, email)")
     .order("created_at", { ascending: false });
 
-  const { data: counts } = await supabase
-    .from("lead_contacts")
-    .select("lead_file_id");
+  const { data: counts } = await supabase.from("deals").select("lead_file_id");
 
   const countMap = {};
-  for (const lc of counts || []) {
-    countMap[lc.lead_file_id] = (countMap[lc.lead_file_id] || 0) + 1;
+  for (const d of counts || []) {
+    if (d.lead_file_id) countMap[d.lead_file_id] = (countMap[d.lead_file_id] || 0) + 1;
   }
 
   const rows = (files || []).map((f) => ({

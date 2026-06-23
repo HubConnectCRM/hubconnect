@@ -4,13 +4,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 // Searchable select. Renders a hidden input[name] so it works inside <form>.
-export default function Combobox({ options, value, onChange, placeholder, name }) {
+// allowCustom: lets the user commit a typed value that isn't in the options.
+export default function Combobox({ options, value, onChange, placeholder, name, allowCustom }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const ref = useRef(null);
 
   const selected = options.find((o) => o.value === value);
+  const selectedLabel = selected ? selected.label : value || "";
 
   useEffect(() => {
     function handle(e) {
@@ -34,8 +36,8 @@ export default function Combobox({ options, value, onChange, placeholder, name }
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-left text-sm outline-none focus:border-[var(--brand)]"
       >
-        <span className={selected ? "" : "text-[var(--muted)]"}>
-          {selected ? selected.label : placeholder}
+        <span className={selectedLabel ? "" : "text-[var(--muted)]"}>
+          {selectedLabel || placeholder}
         </span>
         <span className="text-[var(--muted)]">▾</span>
       </button>
@@ -52,7 +54,23 @@ export default function Combobox({ options, value, onChange, placeholder, name }
             />
           </div>
           <ul className="max-h-60 overflow-auto pb-1">
-            {filtered.length === 0 ? (
+            {allowCustom && query.trim() &&
+              !filtered.some((o) => o.label.toLowerCase() === query.trim().toLowerCase()) && (
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onChange(query.trim());
+                      setOpen(false);
+                      setQuery("");
+                    }}
+                    className="block w-full px-3 py-1.5 text-left text-sm text-[var(--brand)] hover:bg-[var(--background)]"
+                  >
+                    + {query.trim()}
+                  </button>
+                </li>
+              )}
+            {filtered.length === 0 && !allowCustom ? (
               <li className="px-3 py-2 text-sm text-[var(--muted)]">
                 {t("common.noResults")}
               </li>
