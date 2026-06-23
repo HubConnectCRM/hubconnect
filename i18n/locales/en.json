@@ -194,6 +194,7 @@
     "rep": "Representative",
     "noReps": "No representatives yet.",
     "addRep": "Add representative",
+    "firstRep": "First representative (optional)",
     "repExisting": "Existing contact",
     "repNew": "New person",
     "repAlready": "Already a representative.",

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { Badge, Button, Card, EmptyState, Field, Input, PageHeader, Select } from "@/components/ui";
 import Combobox from "@/components/Combobox";
-import { AddRepForm, RepsTable } from "@/components/DealReps";
+import { AddRepForm, NewRepFields, RepsTable } from "@/components/DealReps";
 import { pushDealToEvent, saveDeal, setDealStage } from "@/app/(app)/deals/actions";
 
 const STAGES = ["prospect", "in_progress", "won", "lost"];
@@ -39,7 +39,7 @@ export default function SalesView({ deals, owners, events, leadFiles, companies,
       {/* Add deal (also lets sales create a lead file + contacts from here) */}
       <Card className="mb-4 p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--muted)]">{t("deals.add")}</h2>
-        <AddDealForm companies={companies} leadFiles={leadFiles} groups={groups} owners={owners} />
+        <AddDealForm companies={companies} leadFiles={leadFiles} groups={groups} owners={owners} contacts={contacts} />
       </Card>
 
       <div className="mb-4 flex flex-wrap gap-3">
@@ -79,14 +79,15 @@ export default function SalesView({ deals, owners, events, leadFiles, companies,
   );
 }
 
-function AddDealForm({ companies, leadFiles, groups, owners }) {
+function AddDealForm({ companies, leadFiles, groups, owners, contacts }) {
   const { t } = useTranslation();
   const [state, action, pending] = useActionState(saveDeal, {});
   const [companyName, setCompanyName] = useState("");
   const [fileValue, setFileValue] = useState("");
   const [groupId, setGroupId] = useState("");
+  const [formKey, setFormKey] = useState(0);
 
-  useEffect(() => { if (state?.ok) { setCompanyName(""); setFileValue(""); setGroupId(""); } }, [state?.ok]);
+  useEffect(() => { if (state?.ok) { setCompanyName(""); setFileValue(""); setGroupId(""); setFormKey((k) => k + 1); } }, [state?.ok]);
 
   const companyOpts = companies.map((c) => ({ value: c.name, label: c.name }));
   const fileOpts = leadFiles.map((f) => ({ value: f.id, label: f.name }));
@@ -96,7 +97,7 @@ function AddDealForm({ companies, leadFiles, groups, owners }) {
     : [];
 
   return (
-    <form action={action} className="flex flex-wrap items-end gap-3">
+    <form key={formKey} action={action} className="flex flex-wrap items-end gap-3">
       <input type="hidden" name="company_name" value={companyName} />
       <input type="hidden" name="lead_file_id" value={isExistingFile ? fileValue : ""} />
       <input type="hidden" name="lead_file_name" value={isExistingFile ? "" : fileValue} />
@@ -132,6 +133,9 @@ function AddDealForm({ companies, leadFiles, groups, owners }) {
             {STAGES.map((s) => <option key={s} value={s}>{t(`deals.stages.${s}`)}</option>)}
           </Select>
         </Field>
+      </div>
+      <div className="mt-1 w-full rounded-lg border border-dashed border-[var(--border)] p-3">
+        <NewRepFields contacts={contacts} />
       </div>
       <Button type="submit" disabled={pending || !companyName || !fileValue}>{t("common.add")}</Button>
       {state?.error && (

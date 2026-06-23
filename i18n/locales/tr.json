@@ -194,6 +194,7 @@
     "rep": "Temsilci",
     "noReps": "Henüz temsilci yok.",
     "addRep": "Temsilci ekle",
+    "firstRep": "İlk temsilci (isteğe bağlı)",
     "repExisting": "Mevcut kişi",
     "repNew": "Yeni kişi",
     "repAlready": "Zaten temsilci.",
