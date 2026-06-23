@@ -9,6 +9,7 @@ import {
   updateMyProfile,
   updateUserRole,
   toggleUserActive,
+  addTeamMember,
 } from "@/app/(app)/settings/actions";
 
 const ROLES = ["admin", "sales", "event"];
@@ -57,6 +58,7 @@ export default function SettingsView({ profile, users, isAdmin }) {
           <div className="p-5">
             <h2 className="text-lg font-semibold">{t("settings.users")}</h2>
             <p className="mt-1 text-sm text-[var(--muted)]">{t("settings.usersHint")}</p>
+            <AddMember />
           </div>
           <table className="w-full text-sm">
             <thead className="border-y border-[var(--border)] text-left text-[var(--muted)]">
@@ -120,5 +122,57 @@ function UserRow({ user, isSelf }) {
         </button>
       </td>
     </tr>
+  );
+}
+
+function AddMember() {
+  const { t } = useTranslation();
+  const [state, action, pending] = useActionState(addTeamMember, {});
+
+  return (
+    <div className="mt-4 rounded-lg border border-[var(--border)] p-4">
+      <p className="mb-3 text-sm font-medium">{t("settings.addMember")}</p>
+      <form action={action} className="flex flex-wrap items-end gap-3">
+        <div className="min-w-40 flex-1">
+          <Field label={t("common.fullName")}>
+            <Input name="full_name" />
+          </Field>
+        </div>
+        <div className="min-w-48 flex-1">
+          <Field label={t("common.email")}>
+            <Input name="email" type="email" required />
+          </Field>
+        </div>
+        <div className="w-40">
+          <Field label={t("settings.role")}>
+            <Select name="role" defaultValue="sales">
+              {ROLES.map((r) => (
+                <option key={r} value={r}>
+                  {t(`roles.${r}`)}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </div>
+        <Button type="submit" disabled={pending}>
+          {pending ? t("common.saving") : t("common.add")}
+        </Button>
+      </form>
+      <p className="mt-2 text-xs text-[var(--muted)]">{t("settings.addMemberHint")}</p>
+      {state?.error === "no_service_key" && (
+        <p className="mt-2 text-sm text-red-700">{t("settings.noServiceKey")}</p>
+      )}
+      {state?.error && state.error !== "no_service_key" && (
+        <p className="mt-2 text-sm text-red-700">{state.error}</p>
+      )}
+      {state?.ok && (
+        <div className="mt-3 rounded-lg bg-green-50 p-3 text-sm text-green-800">
+          <p>{t("settings.shareCredentials", { email: state.email })}</p>
+          <p className="mt-1 font-mono">
+            {t("settings.tempPassword")}: {state.tempPassword}
+          </p>
+        </div>
+      )}
+    </div>
   );
 }

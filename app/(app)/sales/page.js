@@ -16,6 +16,12 @@ export default async function SalesPage() {
     supabase.from("events").select("id, name").order("name"),
   ]);
 
+  const { data: contacts } = await supabase
+    .from("contacts")
+    .select("id, full_name, company:companies(name)")
+    .order("full_name")
+    .limit(5000);
+
   const rows = (regs || []).map((r) => ({
     id: r.id,
     contactId: r.contact?.id,
@@ -30,5 +36,12 @@ export default async function SalesPage() {
     lastAt: r.last_activity_at,
   }));
 
-  return <SalesView rows={rows} owners={owners || []} events={events || []} />;
+  return (
+    <SalesView
+      rows={rows}
+      owners={owners || []}
+      events={events || []}
+      contacts={contacts || []}
+    />
+  );
 }

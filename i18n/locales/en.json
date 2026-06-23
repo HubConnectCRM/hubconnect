@@ -259,6 +259,11 @@
     "active": "Active",
     "you": "You",
     "usersHint": "Only admins can change roles.",
-    "saved": "Settings saved."
+    "saved": "Settings saved.",
+    "addMember": "Add team member",
+    "addMemberHint": "Creates an account with a temporary password to share.",
+    "shareCredentials": "Account created — share these with {{email}}:",
+    "tempPassword": "Temporary password",
+    "noServiceKey": "Service key not set. Add SUPABASE_SERVICE_ROLE_KEY to .env.local."
   }
 }

@@ -20,19 +20,75 @@ const GUESS = {
   notes: ["note", "notes", "azioni", "feedback", "topic", "tema"],
 };
 
-function guessMapping(headers) {
+const isEmail = (v) => /\S+@\S+\.\S+/.test(v);
+const isPhone = (v) => {
+  const s = v.toString().trim();
+  const digits = s.replace(/[^\d]/g, "");
+  return digits.length >= 7 && /^[+()\-\s\d./]+$/.test(s);
+};
+const ratio = (samples, fn) =>
+  samples.length ? samples.filter(fn).length / samples.length : 0;
+
+// Map columns by looking at the actual VALUES (smarter than header text):
+// email = the column whose cells contain "@", phone = digit-like column, etc.
+function guessMapping(headers, rows) {
+  const n = headers.length;
+  const mapping = Array(n).fill("");
   const used = new Set();
-  return headers.map((h) => {
+  const samples = headers.map((_, i) =>
+    (rows || [])
+      .map((r) => r[i])
+      .filter((v) => v != null && v.toString().trim() !== "")
+      .map((v) => v.toString().trim())
+      .slice(0, 50)
+  );
+
+  // 1) Email — column with the most @-looking values
+  let bestEmail = -1;
+  let bestEmailR = 0;
+  samples.forEach((s, i) => {
+    const r = ratio(s, isEmail);
+    if (r > bestEmailR) {
+      bestEmailR = r;
+      bestEmail = i;
+    }
+  });
+  if (bestEmail >= 0 && bestEmailR >= 0.3) {
+    mapping[bestEmail] = "email";
+    used.add("email");
+  }
+
+  // 2) Phone — most digit-like column (not the email one)
+  let bestPhone = -1;
+  let bestPhoneR = 0;
+  samples.forEach((s, i) => {
+    if (mapping[i]) return;
+    const r = ratio(s, isPhone);
+    if (r > bestPhoneR) {
+      bestPhoneR = r;
+      bestPhone = i;
+    }
+  });
+  if (bestPhone >= 0 && bestPhoneR >= 0.5) {
+    mapping[bestPhone] = "phone";
+    used.add("phone");
+  }
+
+  // 3) Everything else — match by header text
+  headers.forEach((h, i) => {
+    if (mapping[i]) return;
     const text = (h || "").toString().toLowerCase();
     for (const field of IMPORT_FIELDS) {
       if (used.has(field)) continue;
       if ((GUESS[field] || []).some((kw) => text.includes(kw))) {
+        mapping[i] = field;
         used.add(field);
-        return field;
+        break;
       }
     }
-    return "";
   });
+
+  return mapping;
 }
 
 export default function ImportWizard({ existingEmails }) {
@@ -53,7 +109,7 @@ export default function ImportWizard({ existingEmails }) {
   function applySheet(idx, hRow) {
     const s = sheets[idx];
     const hdrs = s.rows[hRow - 1] || [];
-    setMapping(guessMapping(hdrs));
+    setMapping(guessMapping(hdrs, s.rows.slice(hRow)));
   }
 
   async function onFile(e) {
@@ -72,7 +128,7 @@ export default function ImportWizard({ existingEmails }) {
       setSheets(parsed);
       setSheetIdx(0);
       setHeaderRow(1);
-      setMapping(guessMapping(parsed[0]?.rows[0] || []));
+      setMapping(guessMapping(parsed[0]?.rows[0] || [], (parsed[0]?.rows || []).slice(1)));
     } finally {
       setBusy(false);
     }

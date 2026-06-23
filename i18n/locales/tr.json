@@ -259,6 +259,11 @@
     "active": "Aktif",
     "you": "Sen",
     "usersHint": "Rolleri yalnızca yöneticiler değiştirebilir.",
-    "saved": "Ayarlar kaydedildi."
+    "saved": "Ayarlar kaydedildi.",
+    "addMember": "Ekip üyesi ekle",
+    "addMemberHint": "Paylaşmak için geçici parolalı bir hesap oluşturur.",
+    "shareCredentials": "Hesap oluşturuldu — {{email}} ile paylaş:",
+    "tempPassword": "Geçici parola",
+    "noServiceKey": "Service key yok. .env.local'e SUPABASE_SERVICE_ROLE_KEY ekle."
   }
 }

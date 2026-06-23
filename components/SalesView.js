@@ -4,10 +4,11 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { Badge, Card, EmptyState, Input, PageHeader, Select } from "@/components/ui";
+import SalesAddContact from "@/components/SalesAddContact";
 
 const RSVP_COLOR = { yes: "green", no: "red", maybe: "amber" };
 
-export default function SalesView({ rows, owners, events }) {
+export default function SalesView({ rows, owners, events, contacts }) {
   const { t } = useTranslation();
   const router = useRouter();
   const [q, setQ] = useState("");
@@ -32,6 +33,8 @@ export default function SalesView({ rows, owners, events }) {
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader title={t("sales.title")} subtitle={t("sales.subtitle")} />
+
+      <SalesAddContact contacts={contacts} events={events} />
 
       <div className="mb-4 flex flex-wrap gap-3">
         <div className="min-w-56 flex-1">
