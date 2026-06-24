@@ -13,5 +13,12 @@ export default async function SettingsPage() {
     users = data || [];
   }
 
-  return <SettingsView profile={profile} users={users} isAdmin={profile.role === "admin"} />;
+  return (
+    <SettingsView
+      profile={profile}
+      users={users}
+      isAdmin={profile.role === "admin"}
+      mailbosSenderEmail={profile.mailbos_sender_email || null}
+    />
+  );
 }

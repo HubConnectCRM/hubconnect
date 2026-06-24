@@ -159,24 +159,23 @@ export async function confirmRsvp(prevState, formData) {
   const eventId = clean(formData.get("event_id"));
   const rsvp = clean(formData.get("rsvp"));
   const note = clean(formData.get("note"));
-  if (!id) return { error: "missing" };
+  if (!id || !eventId) return { error: "missing" };
+  if (rsvp && !["yes", "no", "maybe"].includes(rsvp)) return { error: "invalid" };
 
-  const { data: reg } = await supabase
-    .from("event_registrations")
-    .select("status")
-    .eq("id", id)
-    .single();
-
-  const { error } = await supabase
-    .from("event_registrations")
-    .update({ rsvp, last_note: note, last_activity_at: new Date().toISOString() })
-    .eq("id", id);
+  const status = rsvp === "yes" ? "confirmed" : rsvp === "no" ? "declined" : rsvp === "maybe" ? "waiting_list" : undefined;
+  const patch = {
+    rsvp: rsvp || null,
+    last_note: note,
+    last_activity_at: new Date().toISOString(),
+  };
+  if (status) patch.status = status;
+  const { error } = await supabase.from("event_registrations").update(patch).eq("id", id);
   if (error) return { error: error.message };
 
   await supabase.from("registration_rsvp_history").insert({
     registration_id: id,
-    rsvp,
-    status: reg?.status ?? null,
+    rsvp: rsvp || null,
+    status: status || null,
     note,
     changed_by: user.id,
   });
@@ -187,8 +186,14 @@ export async function confirmRsvp(prevState, formData) {
 }
 
 export async function updateRegistrationStatus(id, status, eventId) {
-  const { supabase } = await requireProfile();
-  await supabase.from("event_registrations").update({ status }).eq("id", id);
+  const { supabase, user } = await requireProfile();
+  const rsvp = status === "confirmed" || status === "attended" ? "yes" : status === "declined" || status === "no_show" ? "no" : status === "waiting_list" ? "maybe" : null;
+  const patch = { status, last_activity_at: new Date().toISOString() };
+  if (rsvp) patch.rsvp = rsvp;
+  const { error } = await supabase.from("event_registrations").update(patch).eq("id", id);
+  if (!error) {
+    await supabase.from("registration_rsvp_history").insert({ registration_id: id, rsvp, status, changed_by: user.id });
+  }
   revalidatePath(`/events/${eventId}`);
 }
 

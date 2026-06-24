@@ -1,15 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { Button, Card, EmptyState, Input, PageHeader } from "@/components/ui";
+import { enrichExistingCompanies } from "@/app/(app)/companies/actions";
 import { Icon } from "@/components/icons";
 
 export default function CompaniesList({ companies }) {
   const { t } = useTranslation();
   const router = useRouter();
   const [q, setQ] = useState("");
+  const [pending, startTransition] = useTransition();
+  const [cacheResult, setCacheResult] = useState(null);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -24,12 +27,23 @@ export default function CompaniesList({ companies }) {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <PageHeader title={t("companies.title")}>
+      <PageHeader title={t("companies.title")} subtitle="Use Cache missing companies to enrich old imports without AI cost.">
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={pending}
+          onClick={() => startTransition(async () => setCacheResult(await enrichExistingCompanies()))}
+        >
+          {pending ? "Caching…" : "Cache missing companies"}
+        </Button>
         <Button href="/companies/new">
           <Icon.companies width={16} height={16} />
           {t("companies.new")}
         </Button>
       </PageHeader>
+
+      {cacheResult?.ok && <p className="mb-3 text-sm text-green-700">Cached {cacheResult.enriched} companies. Scanned {cacheResult.scanned}.</p>}
+      {cacheResult?.error && <p className="mb-3 text-sm text-red-700">{cacheResult.error}</p>}
 
       <div className="mb-4">
         <Input

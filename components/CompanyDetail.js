@@ -1,18 +1,21 @@
 "use client";
 
+import { useTransition, useState } from "react";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import { Button, Card, PageHeader } from "@/components/ui";
 import DeleteButton from "@/components/DeleteButton";
-import { deleteCompany } from "@/app/(app)/companies/actions";
+import { deleteCompany, refreshCompanyCache } from "@/app/(app)/companies/actions";
 
 export default function CompanyDetail({ company }) {
   const { t } = useTranslation();
   const contacts = company.contacts || [];
+  const [pending, startTransition] = useTransition();
+  const [cacheMsg, setCacheMsg] = useState(null);
   const location = [company.city, company.country].filter(Boolean).join(", ");
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-6xl">
       <div className="mb-4">
         <Button variant="ghost" href="/companies">
           ← {t("common.back")}
@@ -20,6 +23,17 @@ export default function CompanyDetail({ company }) {
       </div>
 
       <PageHeader title={company.name} subtitle={company.sector || undefined}>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={pending}
+          onClick={() => startTransition(async () => {
+            const res = await refreshCompanyCache(company.id);
+            setCacheMsg(res?.ok ? "Company cache refreshed." : (res?.error || "Cache refresh failed."));
+          })}
+        >
+          {pending ? "Refreshing…" : "Refresh cache"}
+        </Button>
         <Button variant="secondary" href={`/companies/${company.id}/edit`}>
           {t("common.edit")}
         </Button>
@@ -30,8 +44,9 @@ export default function CompanyDetail({ company }) {
         />
       </PageHeader>
 
+      {cacheMsg && <p className="mb-3 text-sm text-green-700">{cacheMsg}</p>}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Card className="space-y-3 p-5 md:col-span-1">
+        <Card className="space-y-3 p-5 md:col-span-3">
           <Row label={t("companies.location")} value={location} />
           <Row
             label={t("common.website")}
@@ -48,15 +63,10 @@ export default function CompanyDetail({ company }) {
               ) : null
             }
           />
-          {company.overview && (
-            <div>
-              <p className="text-xs text-[var(--muted)]">{t("companies.overview")}</p>
-              <p className="mt-1 whitespace-pre-wrap text-sm">{company.overview}</p>
-            </div>
-          )}
+          {company.overview && <CompanyCache overview={company.overview} />}
         </Card>
 
-        <Card className="p-5 md:col-span-2">
+        <Card className="p-5 md:col-span-3">
           <h2 className="mb-3 text-lg font-semibold">{t("companies.contacts")}</h2>
           {contacts.length === 0 ? (
             <p className="text-sm text-[var(--muted)]">{t("contacts.empty")}</p>
@@ -79,6 +89,31 @@ export default function CompanyDetail({ company }) {
             </ul>
           )}
         </Card>
+      </div>
+    </div>
+  );
+}
+
+function CompanyCache({ overview }) {
+  const rows = String(overview || "")
+    .split(/\n+/)
+    .map((line) => {
+      const idx = line.indexOf(":");
+      if (idx === -1) return null;
+      return { label: line.slice(0, idx).trim(), value: line.slice(idx + 1).trim() };
+    })
+    .filter(Boolean);
+  if (!rows.length) return <p className="mt-1 whitespace-pre-wrap text-sm">{overview}</p>;
+  return (
+    <div className="md:col-span-3">
+      <p className="mb-2 text-xs text-[var(--muted)]">Company cache</p>
+      <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--background)]">
+        {rows.map((r) => (
+          <div key={r.label} className="grid grid-cols-1 border-b border-[var(--border)] last:border-0 md:grid-cols-[220px_1fr]">
+            <div className="bg-[var(--surface)] px-3 py-2 text-sm font-medium">{r.label}</div>
+            <div className="px-3 py-2 text-sm text-[var(--muted)]">{r.value || "—"}</div>
+          </div>
+        ))}
       </div>
     </div>
   );

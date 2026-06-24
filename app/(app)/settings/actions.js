@@ -69,3 +69,41 @@ export async function toggleUserActive(userId, isActive) {
   await supabase.from("profiles").update({ is_active: isActive }).eq("id", userId);
   revalidatePath("/settings");
 }
+
+export async function connectMailbos(prevState, formData) {
+  const { supabase, user } = await requireProfile();
+  const key = clean(formData.get("api_key"));
+  if (!key || !key.startsWith("mbk_")) return { error: "invalid_key_format" };
+
+  let senderEmail = "";
+  try {
+    const res = await fetch("https://app.mailbos.app/api/ext/v1/ping", {
+      method: "POST",
+      headers: { "x-api-key": key, "Content-Type": "application/json" },
+    });
+    const data = await res.json();
+    if (!data.ok) return { error: "invalid_key" };
+    senderEmail = data.sender?.email || "";
+  } catch {
+    return { error: "mailbos_unreachable" };
+  }
+
+  const keyEnc = Buffer.from(key).toString("base64");
+  await supabase
+    .from("profiles")
+    .update({ mailbos_api_key_enc: keyEnc, mailbos_sender_email: senderEmail })
+    .eq("id", user.id);
+
+  revalidatePath("/settings");
+  return { ok: true, senderEmail };
+}
+
+export async function disconnectMailbos() {
+  const { supabase, user } = await requireProfile();
+  await supabase
+    .from("profiles")
+    .update({ mailbos_api_key_enc: null, mailbos_sender_email: null })
+    .eq("id", user.id);
+  revalidatePath("/settings");
+  return { ok: true };
+}

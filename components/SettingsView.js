@@ -10,11 +10,13 @@ import {
   updateUserRole,
   toggleUserActive,
   addTeamMember,
+  connectMailbos,
+  disconnectMailbos,
 } from "@/app/(app)/settings/actions";
 
 const ROLES = ["admin", "sales", "event"];
 
-export default function SettingsView({ profile, users, isAdmin }) {
+export default function SettingsView({ profile, users, isAdmin, mailbosSenderEmail }) {
   const { t, i18n } = useTranslation();
   const [state, action, pending] = useActionState(updateMyProfile, {});
 
@@ -51,6 +53,11 @@ export default function SettingsView({ profile, users, isAdmin }) {
             {state?.ok && <span className="text-sm text-green-700">{t("settings.saved")}</span>}
           </div>
         </form>
+      </Card>
+
+      <Card className="mb-6 p-6">
+        <h2 className="mb-4 text-lg font-semibold">{t("settings.mailbosTitle")}</h2>
+        <MailbosConnect senderEmail={mailbosSenderEmail} />
       </Card>
 
       {isAdmin && (
@@ -122,6 +129,56 @@ function UserRow({ user, isSelf }) {
         </button>
       </td>
     </tr>
+  );
+}
+
+function MailbosConnect({ senderEmail }) {
+  const { t } = useTranslation();
+  const [connectState, connectAction, connectPending] = useActionState(connectMailbos, {});
+  const [disconnectPending, startDisconnect] = useTransition();
+  const connected = !!(connectState?.senderEmail || senderEmail);
+  const displayEmail = connectState?.senderEmail || senderEmail;
+
+  if (connected) {
+    return (
+      <div>
+        <div className="mb-3 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-800">
+          ✓ {t("settings.mailbosConnected", { email: displayEmail })}
+        </div>
+        <Button
+          variant="secondary"
+          disabled={disconnectPending}
+          onClick={() => startDisconnect(() => disconnectMailbos())}
+        >
+          {t("settings.mailbosDisconnect")}
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <p className="mb-3 text-sm text-[var(--muted)]">{t("settings.mailbosHint")}</p>
+      <form action={connectAction} className="flex flex-wrap items-end gap-3 max-w-lg">
+        <div className="flex-1 min-w-64">
+          <Field label={t("settings.mailbosKeyLabel")}>
+            <Input name="api_key" type="password" placeholder="mbk_…" required />
+          </Field>
+        </div>
+        <Button type="submit" disabled={connectPending}>
+          {connectPending ? t("common.saving") : t("settings.mailbosConnect")}
+        </Button>
+      </form>
+      {connectState?.error === "invalid_key" && (
+        <p className="mt-2 text-sm text-red-700">{t("settings.mailbosInvalidKey")}</p>
+      )}
+      {connectState?.error === "invalid_key_format" && (
+        <p className="mt-2 text-sm text-red-700">{t("settings.mailbosInvalidKey")}</p>
+      )}
+      {connectState?.error === "mailbos_unreachable" && (
+        <p className="mt-2 text-sm text-red-700">{t("settings.mailbosUnreachable")}</p>
+      )}
+    </div>
   );
 }
 

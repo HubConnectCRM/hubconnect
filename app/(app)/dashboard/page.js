@@ -4,10 +4,12 @@ import DashboardView from "@/components/DashboardView";
 export default async function DashboardPage() {
   const { supabase, profile } = await requireProfile();
 
-  const [contacts, companies, events] = await Promise.all([
+  const [contacts, companies, events, leads, deals] = await Promise.all([
     supabase.from("contacts").select("*", { count: "exact", head: true }),
     supabase.from("companies").select("*", { count: "exact", head: true }),
     supabase.from("events").select("*", { count: "exact", head: true }),
+    supabase.from("lead_files").select("*", { count: "exact", head: true }),
+    supabase.from("deals").select("*", { count: "exact", head: true }),
   ]);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -22,6 +24,8 @@ export default async function DashboardPage() {
     contacts: contacts.count || 0,
     companies: companies.count || 0,
     events: events.count || 0,
+    leads: leads.count || 0,
+    deals: deals.count || 0,
   };
 
   return (

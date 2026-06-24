@@ -4,6 +4,7 @@ import { useActionState, useEffect, useMemo, useState, useTransition } from "rea
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { Badge, Button, Card, EmptyState, Field, Input, PageHeader, Select } from "@/components/ui";
+import NewPersonModal from "@/components/NewPersonModal";
 import Combobox from "@/components/Combobox";
 import { AddRepForm, RepsTable } from "@/components/DealReps";
 import { pushDealToEvent, saveDeal, setDealStage } from "@/app/(app)/deals/actions";
@@ -18,8 +19,11 @@ export default function SalesView({ deals, owners, events, leadFiles, companies,
   const [owner, setOwner] = useState("");
   const [stage, setStage] = useState("");
   const [file, setFile] = useState("");
+  const [tab, setTab] = useState("people");
+  const [showPerson, setShowPerson] = useState(false);
+  const [showDealForm, setShowDealForm] = useState(false);
 
-  const filtered = useMemo(() => {
+  const filteredDeals = useMemo(() => {
     const term = q.trim().toLowerCase();
     return deals.filter((d) => {
       if (owner && d.owner_id !== owner) return false;
@@ -32,53 +36,63 @@ export default function SalesView({ deals, owners, events, leadFiles, companies,
     });
   }, [deals, q, owner, stage, file]);
 
+  const filteredPeople = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    if (!term) return contacts;
+    return contacts.filter((c) => [c.full_name, c.email, c.job_title, c.company?.name].filter(Boolean).join(" ").toLowerCase().includes(term));
+  }, [contacts, q]);
+
+  const companyRows = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    return companies.filter((c) => !term || c.name?.toLowerCase().includes(term));
+  }, [companies, q]);
+
   return (
     <div className="mx-auto max-w-6xl">
-      <PageHeader title={t("sales.title")} subtitle={t("sales.subtitleDeals")} />
+      <PageHeader title={t("sales.wonTitle")} subtitle={t("sales.wonSubtitle")}>
+        <Button href="/leads">{t("sales.openLeads")}</Button>
+        <Button variant="secondary" href="/import?destination=sales_pipeline">{t("sales.importSalesLeads")}</Button>
+      </PageHeader>
 
-      {/* Add deal (also lets sales create a lead file + contacts from here) */}
-      <Card className="mb-4 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-[var(--muted)]">{t("deals.add")}</h2>
-        <AddDealForm companies={companies} leadFiles={leadFiles} groups={groups} owners={owners} />
-      </Card>
+      <NewPersonModal open={showPerson} onClose={() => setShowPerson(false)} companies={companies} owners={owners} leadFiles={leadFiles} groups={groups} title="New person for Sales" />
 
-      <div className="mb-4 flex flex-wrap gap-3">
-        <div className="min-w-48 flex-1">
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("common.search")} />
-        </div>
-        <div className="w-44">
-          <Select value={owner} onChange={(e) => setOwner(e.target.value)}>
-            <option value="">{t("contacts.allOwners")}</option>
-            {owners.map((o) => <option key={o.id} value={o.id}>{o.full_name || o.email}</option>)}
-          </Select>
-        </div>
-        <div className="w-40">
-          <Select value={stage} onChange={(e) => setStage(e.target.value)}>
-            <option value="">{t("deals.allStages")}</option>
-            {STAGES.map((s) => <option key={s} value={s}>{t(`deals.stages.${s}`)}</option>)}
-          </Select>
-        </div>
-        <div className="w-48">
-          <Select value={file} onChange={(e) => setFile(e.target.value)}>
-            <option value="">{t("sales.allFiles")}</option>
-            {leadFiles.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
-          </Select>
-        </div>
+      <div className="mb-4 grid gap-3 sm:grid-cols-4">
+        <button onClick={() => setTab("people")} className="text-left"><Card className={`p-4 ${tab === "people" ? "ring-2 ring-[var(--brand)]" : ""}`}><p className="text-xs text-[var(--muted)]">People</p><p className="mt-1 text-2xl font-semibold">{contacts.length}</p></Card></button>
+        <button onClick={() => setTab("companies")} className="text-left"><Card className={`p-4 ${tab === "companies" ? "ring-2 ring-[var(--brand)]" : ""}`}><p className="text-xs text-[var(--muted)]">Companies</p><p className="mt-1 text-2xl font-semibold">{companies.length}</p></Card></button>
+        <button onClick={() => setTab("deals")} className="text-left"><Card className={`p-4 ${tab === "deals" ? "ring-2 ring-[var(--brand)]" : ""}`}><p className="text-xs text-[var(--muted)]">Opportunities</p><p className="mt-1 text-2xl font-semibold">{deals.length}</p></Card></button>
+        <button onClick={() => setTab("deals")} className="text-left"><Card className="p-4"><p className="text-xs text-[var(--muted)]">Ready for event</p><p className="mt-1 text-2xl font-semibold">{deals.filter((d) => d.stage === "won" || d.pushed_event_id).length}</p></Card></button>
       </div>
 
-      <p className="mb-2 text-sm text-[var(--muted)]">{filtered.length} {t("deals.title")}</p>
+      {false && showDealForm && <Card className="mb-4 p-5">
+        <h2 className="mb-1 text-sm font-semibold text-[var(--muted)]">Create sales opportunity</h2>
+        <p className="mb-3 text-xs text-[var(--muted)]">This is intentionally secondary. Import/add people first, then create an opportunity for companies that are actually being sold to.</p>
+        <AddDealForm companies={companies} leadFiles={leadFiles} groups={groups} owners={owners} />
+      </Card>}
 
-      {filtered.length === 0 ? (
-        <EmptyState>{q || owner || stage || file ? t("common.noResults") : t("sales.emptyDeals")}</EmptyState>
-      ) : (
-        <div className="space-y-3">
-          {filtered.map((d, i) => (
-            <SalesDealCard key={d.id} deal={d} events={events} contacts={contacts} defaultOpen={i === 0 && (d.reps || []).length === 0} />
-          ))}
-        </div>
-      )}
+      <div className="mb-4 flex flex-wrap gap-3">
+        <div className="min-w-48 flex-1"><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("common.search")} /></div>
+        {tab === "deals" && <>
+          <div className="w-44"><Select value={owner} onChange={(e) => setOwner(e.target.value)}><option value="">{t("contacts.allOwners")}</option>{owners.map((o) => <option key={o.id} value={o.id}>{o.full_name || o.email}</option>)}</Select></div>
+          <div className="w-40"><Select value={stage} onChange={(e) => setStage(e.target.value)}><option value="">{t("deals.allStages")}</option>{STAGES.map((s) => <option key={s} value={s}>{t(`deals.stages.${s}`)}</option>)}</Select></div>
+          <div className="w-48"><Select value={file} onChange={(e) => setFile(e.target.value)}><option value="">{t("sales.allFiles")}</option>{leadFiles.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</Select></div>
+        </>}
+      </div>
+
+      {tab === "people" && <PeopleTable people={filteredPeople} />}
+      {tab === "companies" && <CompanyGrid companies={companyRows} />}
+      {tab === "deals" && (filteredDeals.length === 0 ? <EmptyState>{q || owner || stage || file ? t("common.noResults") : t("sales.emptyDeals")}</EmptyState> : <div className="space-y-3">{filteredDeals.map((d, i) => <SalesDealCard key={d.id} deal={d} events={events} contacts={contacts} defaultOpen={i === 0 && (d.reps || []).length === 0} />)}</div>)}
     </div>
   );
+}
+
+function PeopleTable({ people }) {
+  if (!people.length) return <EmptyState>No won people yet. Move a lead opportunity to Won first.</EmptyState>;
+  return <Card className="overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-sm"><thead className="border-b border-[var(--border)] bg-[var(--background)] text-left text-[var(--muted)]"><tr><th className="px-4 py-3 font-medium">Person</th><th className="px-4 py-3 font-medium">Company</th><th className="px-4 py-3 font-medium">Role</th><th className="px-4 py-3 font-medium">Email</th></tr></thead><tbody>{people.map((p) => <tr key={p.id} className="border-b border-[var(--border)] last:border-0"><td className="px-4 py-3 font-medium">{p.full_name || "—"}</td><td className="px-4 py-3 text-[var(--muted)]">{p.company?.name || "—"}</td><td className="px-4 py-3 text-[var(--muted)]">{p.job_title || "—"}</td><td className="px-4 py-3 text-[var(--muted)]">{p.email || "—"}</td></tr>)}</tbody></table></div></Card>;
+}
+
+function CompanyGrid({ companies }) {
+  if (!companies.length) return <EmptyState>No won companies yet.</EmptyState>;
+  return <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{companies.map((c) => <Card key={c.id} className="p-4"><p className="font-semibold">{c.name}</p>{c.website && <a href={c.website} target="_blank" className="mt-1 block text-xs text-[var(--brand)] hover:underline">{c.website}</a>}{c.overview && <p className="mt-2 line-clamp-3 text-xs text-[var(--muted)]">{c.overview}</p>}</Card>)}</div>;
 }
 
 function AddDealForm({ companies, leadFiles, groups, owners }) {

@@ -10,6 +10,7 @@ export default async function LeadFilePage({ params }) {
     { data: file },
     { data: deals },
     { data: groups },
+    { data: leadContacts },
     { data: companies },
     { data: contacts },
     { data: events },
@@ -28,10 +29,15 @@ export default async function LeadFilePage({ params }) {
       .select("id, name")
       .eq("lead_file_id", id)
       .order("created_at"),
-    supabase.from("companies").select("id, name").order("name").limit(5000),
+    supabase
+      .from("lead_contacts")
+      .select("id, status, rsvp, notes, group_id, created_at, contact:contacts(id, full_name, email, phone, job_title, linkedin, source, notes, owner_id, company:companies(id, name, website, overview))")
+      .eq("lead_file_id", id)
+      .order("created_at", { ascending: false }),
+    supabase.from("companies").select("id, name, website, overview").order("name").limit(5000),
     supabase
       .from("contacts")
-      .select("id, full_name, company:companies(name)")
+      .select("id, full_name, email, job_title, company:companies(name)")
       .order("full_name")
       .limit(5000),
     supabase.from("events").select("id, name").order("name"),
@@ -44,6 +50,7 @@ export default async function LeadFilePage({ params }) {
     <LeadFileDetail
       file={file}
       deals={deals || []}
+      leadContacts={leadContacts || []}
       groups={groups || []}
       companies={companies || []}
       contacts={contacts || []}

@@ -9,7 +9,7 @@ export default async function LeadsPage() {
     .select("id, name, description, created_at, created_by:profiles(full_name, email)")
     .order("created_at", { ascending: false });
 
-  const { data: counts } = await supabase.from("deals").select("lead_file_id");
+  const { data: counts } = await supabase.from("lead_contacts").select("lead_file_id");
 
   const countMap = {};
   for (const d of counts || []) {

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import { Icon } from "@/components/icons";
 
@@ -7,32 +8,35 @@ export default function DashboardView({ name, stats, followups }) {
   const { t } = useTranslation();
 
   const cards = [
-    { key: "contacts", value: stats.contacts, icon: "contacts" },
-    { key: "companies", value: stats.companies, icon: "companies" },
-    { key: "events", value: stats.events, icon: "events" },
+    { key: "contacts", value: stats.contacts, icon: "contacts", href: "/contacts", helper: "Open people database" },
+    { key: "companies", value: stats.companies, icon: "companies", href: "/companies", helper: "Open company database" },
+    { key: "events", value: stats.events, icon: "events", href: "/events", helper: "Open event workspace" },
+    { key: "leads", value: stats.leads || 0, icon: "deals", href: "/leads", helper: "Open lead files" },
+    { key: "sales", value: stats.deals || 0, icon: "deals", href: "/sales", helper: "Open sales pipeline" },
   ];
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <h1 className="text-2xl font-semibold">{t("dashboard.title")}</h1>
-      <p className="mt-1 text-[var(--muted)]">
-        {t("dashboard.welcome", { name })}
-      </p>
+    <div className="mx-auto max-w-6xl">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">{t("dashboard.title")}</h1>
+          <p className="mt-1 text-[var(--muted)]">{t("dashboard.welcome", { name })}</p>
+        </div>
+        <Link href="/import" className="rounded-xl bg-[var(--brand)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:opacity-90">Import Excel</Link>
+      </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {cards.map((c) => {
-          const CardIcon = Icon[c.icon];
+          const CardIcon = Icon[c.icon] || Icon.dashboard;
           return (
-            <div
-              key={c.key}
-              className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5"
-            >
+            <Link key={c.key} href={c.href} className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--brand)] hover:shadow-md">
               <div className="flex items-center justify-between text-[var(--muted)]">
-                <span className="text-sm">{t(`dashboard.total${cap(c.key)}`)}</span>
+                <span className="text-sm capitalize">{c.key}</span>
                 <CardIcon />
               </div>
               <p className="mt-2 text-3xl font-semibold">{c.value}</p>
-            </div>
+              <p className="mt-2 text-xs text-[var(--muted)] group-hover:text-[var(--brand)]">{c.helper} →</p>
+            </Link>
           );
         })}
       </div>
@@ -57,8 +61,4 @@ export default function DashboardView({ name, stats, followups }) {
       </div>
     </div>
   );
-}
-
-function cap(s) {
-  return s.charAt(0).toUpperCase() + s.slice(1);
 }

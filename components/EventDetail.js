@@ -17,6 +17,8 @@ import {
 import { EVENT_REG_STATUSES } from "@/lib/constants";
 
 const RSVP_COLOR = { yes: "green", no: "red", maybe: "amber" };
+const STATUS_COLOR = { desiderata: "gray", invited: "blue", registered: "purple", waiting_list: "amber", confirmed: "green", declined: "red", attended: "green", no_show: "red" };
+const STATUS_LABEL = { desiderata: "To invite", invited: "Invited", registered: "Registered", waiting_list: "Waiting list", confirmed: "Confirmed / will come", declined: "Declined / will not come", attended: "Attended", no_show: "No-show" };
 
 export default function EventDetail({ event, registrations, contacts, groups, owners }) {
   const { t } = useTranslation();
@@ -28,10 +30,13 @@ export default function EventDetail({ event, registrations, contacts, groups, ow
   const [sourceFilter, setSourceFilter] = useState("");
   const [rsvpFilter, setRsvpFilter] = useState("");
 
+  const ownerTextFromNotes = (r) => String(r.notes || "").match(/Responsible from Excel:\s*([^|]+)/)?.[1]?.trim() || null;
+  const textualOwners = Array.from(new Set((registrations || []).map(ownerTextFromNotes).filter(Boolean))).sort();
+
   const filtered = registrations.filter((r) => {
     if (activeGroup === "none" && r.group_id) return false;
     if (activeGroup !== "all" && activeGroup !== "none" && r.group_id !== activeGroup) return false;
-    if (ownerFilter && r.requested_by !== ownerFilter) return false;
+    if (ownerFilter && r.requested_by !== ownerFilter && ownerTextFromNotes(r) !== ownerFilter) return false;
     if (sourceFilter && (r.registration_source || "event") !== sourceFilter) return false;
     if (rsvpFilter === "none" && r.rsvp) return false;
     if (rsvpFilter && rsvpFilter !== "none" && r.rsvp !== rsvpFilter) return false;
@@ -81,6 +86,9 @@ export default function EventDetail({ event, registrations, contacts, groups, ow
             {owners.map((o) => (
               <option key={o.id} value={o.id}>{o.full_name || o.email}</option>
             ))}
+            {textualOwners.map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
           </Select>
         </div>
         <div className="w-40">
@@ -112,13 +120,13 @@ export default function EventDetail({ event, registrations, contacts, groups, ow
           <table className="w-full text-sm">
             <thead className="border-b border-[var(--border)] text-left text-[var(--muted)]">
               <tr>
-                <th className="px-4 py-3 font-medium">{t("common.name")}</th>
-                <th className="px-4 py-3 font-medium">{t("contacts.company")}</th>
-                <th className="px-4 py-3 font-medium">{t("common.phone")}</th>
-                <th className="px-4 py-3 font-medium">{t("events.responsible")}</th>
-                <th className="px-4 py-3 font-medium">{t("events.source")}</th>
-                <th className="px-4 py-3 font-medium">{t("groups.label")}</th>
-                <th className="px-4 py-3 font-medium">{t("rsvp.label")}</th>
+                <th className="px-4 py-3 font-medium">Person</th>
+                <th className="px-4 py-3 font-medium">Company / role</th>
+                <th className="px-4 py-3 font-medium">Contact</th>
+                <th className="px-4 py-3 font-medium">Responsible</th>
+                <th className="px-4 py-3 font-medium">Response mail</th>
+                <th className="px-4 py-3 font-medium">Registration status</th>
+                <th className="px-4 py-3 font-medium">Attendance</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
@@ -188,58 +196,35 @@ function RegistrationRow({ reg, eventId, groups }) {
   const [open, setOpen] = useState(false);
   const c = reg.contact || {};
   const responsible = reg.responsible;
+  const ownerTextFromNotes = String(reg.notes || "").match(/Responsible from Excel:\s*([^|]+)/)?.[1]?.trim() || null;
+  const responsibleLabel = responsible?.full_name || responsible?.email || ownerTextFromNotes || null;
   const source = reg.registration_source || "event";
   const group = (groups || []).find((g) => g.id === reg.group_id);
-  const history = [...(reg.history || [])].sort(
-    (a, b) => new Date(b.changed_at) - new Date(a.changed_at)
-  );
+  const history = [...(reg.history || [])].sort((a, b) => new Date(b.changed_at) - new Date(a.changed_at));
 
   return (
     <>
-      <tr className="border-b border-[var(--border)] last:border-0">
+      <tr className="border-b border-[var(--border)] last:border-0 align-top">
         <td className="px-4 py-3 font-medium">
-          <Link href={`/contacts/${c.id}`} className="hover:underline">
-            {c.full_name || "—"}
-          </Link>
+          <Link href={`/contacts/${c.id}`} className="hover:underline">{c.full_name || "—"}</Link>
         </td>
-        <td className="px-4 py-3 text-[var(--muted)]">{c.company?.name || "—"}</td>
+        <td className="px-4 py-3">
+          <div>{c.company?.name || "—"}</div>
+          {c.job_title && <div className="mt-1 text-xs text-[var(--muted)]">{c.job_title}</div>}
+        </td>
         <td className="px-4 py-3 text-[var(--muted)]">
-          {c.phone ? <a href={`tel:${c.phone}`} className="hover:underline">{c.phone}</a> : "—"}
+          {c.email ? <a href={`mailto:${c.email}`} className="block hover:underline">{c.email}</a> : null}
+          {c.phone ? <a href={`tel:${c.phone}`} className="block hover:underline">{c.phone}</a> : null}
+          {!c.email && !c.phone ? "—" : null}
         </td>
         <td className="px-4 py-3">
-          {responsible ? (
-            <Badge color="blue">{responsible.full_name || responsible.email}</Badge>
-          ) : (
-            <span className="text-xs text-[var(--muted)]">—</span>
-          )}
+          {responsibleLabel ? <Badge color="blue">{responsibleLabel}</Badge> : <span className="text-xs text-[var(--muted)]">—</span>}
         </td>
-        <td className="px-4 py-3">
-          <Badge color={source === "sales" ? "green" : "gray"}>
-            {source === "sales" ? t("events.sourceSales") : t("events.sourceEvent")}
-          </Badge>
-        </td>
-        <td className="px-4 py-3">
-          {group ? (
-            <Badge color="purple">{group.name}</Badge>
-          ) : (
-            <span className="text-xs text-[var(--muted)]">—</span>
-          )}
-        </td>
-        <td className="px-4 py-3">
-          {reg.rsvp ? (
-            <Badge color={RSVP_COLOR[reg.rsvp]}>{t(`rsvp.${reg.rsvp}`)}</Badge>
-          ) : (
-            <span className="text-xs text-[var(--muted)]">{t("rsvp.none")}</span>
-          )}
-        </td>
+        <td className="px-4 py-3 text-[var(--muted)]">{reg.response_date || "—"}</td>
+        <td className="px-4 py-3"><Badge color={STATUS_COLOR[reg.status] || "gray"}>{STATUS_LABEL[reg.status] || reg.status || "Registered"}</Badge></td>
+        <td className="px-4 py-3">{reg.rsvp ? <Badge color={RSVP_COLOR[reg.rsvp]}>{reg.rsvp === "yes" ? "Yes" : reg.rsvp === "no" ? "No" : "Maybe"}</Badge> : <span className="text-xs text-[var(--muted)]">Not set</span>}</td>
         <td className="px-4 py-3 text-right">
-          <button
-            type="button"
-            onClick={() => setOpen((o) => !o)}
-            className="text-xs text-[var(--muted)] hover:text-[var(--foreground)]"
-          >
-            {t("rsvp.details")} {open ? "▴" : "▾"}
-          </button>
+          <button type="button" onClick={() => setOpen((o) => !o)} className="text-xs text-[var(--muted)] hover:text-[var(--foreground)]">Details {open ? "▴" : "▾"}</button>
         </td>
       </tr>
 
@@ -248,66 +233,42 @@ function RegistrationRow({ reg, eventId, groups }) {
           <td colSpan={8} className="px-4 py-4">
             <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
               <div className="space-y-1 text-sm">
-                <Info label={t("contacts.jobTitle")} value={c.job_title} />
-                <Info
-                  label={t("common.email")}
-                  value={
-                    c.email ? (
-                      <a href={`mailto:${c.email}`} className="hover:underline">
-                        {c.email}
-                      </a>
-                    ) : null
-                  }
-                />
-                <Info
-                  label={t("contacts.linkedin")}
-                  value={
-                    c.linkedin ? (
-                      <a href={c.linkedin} target="_blank" rel="noreferrer" className="text-[var(--brand)] hover:underline">
-                        LinkedIn
-                      </a>
-                    ) : null
-                  }
-                />
-                <Info label={t("contacts.source")} value={c.source} />
+                <Info label="Job title" value={c.job_title} />
+                <Info label="Email" value={c.email ? <a href={`mailto:${c.email}`} className="hover:underline">{c.email}</a> : null} />
+                <Info label="Phone" value={c.phone} />
+                <Info label="Source list / sheet" value={group?.name || c.source} />
+                <Info label="Import source" value={source === "sales" ? "Sales team" : "Event team"} />
+                <Info label="Last note" value={reg.last_note || reg.notes} />
                 <div className="pt-2">
-                  <p className="mb-1 text-xs text-[var(--muted)]">{t("bridge.status")}</p>
+                  <p className="mb-1 text-xs text-[var(--muted)]">Final status</p>
                   <StatusSelect reg={reg} eventId={eventId} />
+                  <p className="mt-1 text-xs text-[var(--muted)]">Changing to Confirmed sets Attendance to Yes; Declined sets it to No.</p>
                 </div>
               </div>
 
               <div>
-                <p className="mb-1 text-xs text-[var(--muted)]">{t("rsvp.label")}</p>
+                <p className="mb-1 text-xs text-[var(--muted)]">Attendance / latest decision</p>
                 <RsvpEditor reg={reg} eventId={eventId} />
               </div>
 
               <div>
-                <p className="mb-1 text-xs text-[var(--muted)]">{t("rsvp.history")}</p>
-                {history.length === 0 ? (
-                  <p className="text-sm text-[var(--muted)]">{t("rsvp.noHistory")}</p>
-                ) : (
+                <p className="mb-1 text-xs text-[var(--muted)]">Change history</p>
+                {history.length === 0 ? <p className="text-sm text-[var(--muted)]">No history yet</p> : (
                   <ul className="space-y-2">
                     {history.map((h, i) => (
                       <li key={i} className="text-xs">
-                        <div className="flex items-center gap-2">
-                          <Badge color={RSVP_COLOR[h.rsvp] || "gray"}>
-                            {h.rsvp ? t(`rsvp.${h.rsvp}`) : "—"}
-                          </Badge>
-                          <span className="text-[var(--muted)]">
-                            {new Date(h.changed_at).toLocaleString()}
-                          </span>
-                          {h.changed_by?.full_name && (
-                            <span className="text-[var(--muted)]">· {h.changed_by.full_name}</span>
-                          )}
+                        <div className="flex flex-wrap items-center gap-2">
+                          {h.status && <Badge color={STATUS_COLOR[h.status] || "gray"}>{STATUS_LABEL[h.status] || h.status}</Badge>}
+                          {h.rsvp && <Badge color={RSVP_COLOR[h.rsvp] || "gray"}>{h.rsvp}</Badge>}
+                          <span className="text-[var(--muted)]">{new Date(h.changed_at).toLocaleString()}</span>
+                          {h.changed_by?.full_name && <span className="text-[var(--muted)]">· {h.changed_by.full_name}</span>}
                         </div>
                         {h.note && <p className="mt-0.5 pl-1">{h.note}</p>}
                       </li>
                     ))}
                   </ul>
                 )}
-                <div className="mt-3">
-                  <RemoveButton regId={reg.id} eventId={eventId} />
-                </div>
+                <div className="mt-3"><RemoveButton regId={reg.id} eventId={eventId} /></div>
               </div>
             </div>
           </td>

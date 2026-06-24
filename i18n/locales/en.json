@@ -41,7 +41,9 @@
     "status": "Status",
     "of": "of",
     "saved": "Saved.",
-    "required": "Required"
+    "required": "Required",
+    "workflowSubtitle": "Odoo-style workflow: Leads become won Sales; Events stay separate; company cache and mail center support both teams.",
+    "workspaceSubtitle": "Integrated CRM workspace"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -52,7 +54,9 @@
     "leads": "Leads",
     "import": "Import",
     "audit": "Audit log",
-    "settings": "Settings"
+    "settings": "Settings",
+    "mail": "Mail Center",
+    "notifications": "Notifications"
   },
   "sales": {
     "title": "Sales",
@@ -77,7 +81,11 @@
     "typeEvent": "Event",
     "typeLead": "Lead",
     "openLeadFile": "Open lead file",
-    "removeFromFile": "Remove from file"
+    "removeFromFile": "Remove from file",
+    "wonTitle": "Won Sales",
+    "wonSubtitle": "Only companies and people marked Won from Leads appear here. Event imports stay inside Events and never pollute Sales.",
+    "openLeads": "Open Leads",
+    "importSalesLeads": "Import sales leads"
   },
   "roles": {
     "admin": "Admin",
@@ -354,6 +362,37 @@
     "addMemberHint": "Creates an account with a temporary password to share.",
     "shareCredentials": "Account created — share these with {{email}}:",
     "tempPassword": "Temporary password",
-    "noServiceKey": "Service key not set. Add SUPABASE_SERVICE_ROLE_KEY to .env.local."
+    "noServiceKey": "Service key not set. Add SUPABASE_SERVICE_ROLE_KEY to .env.local.",
+    "mailbosTitle": "MailBos — Mail Center",
+    "mailbosHint": "Connect your MailBos account to send emails directly from HubConnect. Get your API key from MailBos → Settings → Extension API Keys.",
+    "mailbosKeyLabel": "MailBos API key",
+    "mailbosConnect": "Connect",
+    "mailbosConnected": "Connected — sending as {{email}}",
+    "mailbosDisconnect": "Disconnect",
+    "mailbosInvalidKey": "Invalid key. Get it from MailBos → Settings → Extension API Keys.",
+    "mailbosUnreachable": "Could not reach MailBos. Try again later."
+  },
+  "mail": {
+    "title": "Mail Center",
+    "subtitle": "Send emails via MailBos from HubConnect",
+    "notConnected": "MailBos not connected",
+    "connectHint": "Go to Settings to connect your MailBos account.",
+    "goToSettings": "Go to Settings",
+    "connectedSubtitle": "Sending as {{email}}",
+    "manageConnection": "Manage connection",
+    "compose": "Compose",
+    "newMail": "New email",
+    "to": "To",
+    "subject": "Subject",
+    "body": "Message",
+    "send": "Send",
+    "sentOk": "Sent ✓",
+    "sent": "Sent",
+    "emptySent": "No emails sent yet.",
+    "contact": "Contact",
+    "status": "Status",
+    "replied": "Replied",
+    "opened": "Opened",
+    "sent_badge": "Sent"
   }
 }

@@ -87,6 +87,143 @@ export async function updateLeadContact(id, updates, leadFileId) {
   revalidatePath(`/leads/${leadFileId}`);
 }
 
+
+async function resolveCompanyByName(supabase, name, userId) {
+  const companyName = clean(name);
+  if (!companyName) return null;
+  const norm = companyName.toLowerCase();
+  const { data: existing } = await supabase
+    .from("companies")
+    .select("id")
+    .eq("name_normalized", norm)
+    .limit(1)
+    .maybeSingle();
+  if (existing?.id) return existing.id;
+  const { data: created, error } = await supabase
+    .from("companies")
+    .insert({ name: companyName, created_by: userId })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return created?.id ?? null;
+}
+
+function splitFullName(fullName) {
+  const parts = (clean(fullName) || "").split(/\s+/).filter(Boolean);
+  const first_name = parts.shift() || null;
+  const last_name = parts.join(" ") || null;
+  return { first_name, last_name };
+}
+
+export async function updateLeadPerson(prevState, formData) {
+  const { supabase, user } = await requireProfile();
+  const leadFileId = clean(formData.get("lead_file_id"));
+  const leadContactId = clean(formData.get("lead_contact_id"));
+  const contactId = clean(formData.get("contact_id"));
+  if (!leadFileId || !leadContactId || !contactId) return { error: "missing" };
+
+  let companyId = clean(formData.get("company_id"));
+  const companyName = clean(formData.get("company_name"));
+  if (companyName) {
+    try { companyId = await resolveCompanyByName(supabase, companyName, user.id); }
+    catch (e) { return { error: e.message }; }
+  }
+
+  const { first_name, last_name } = splitFullName(formData.get("full_name"));
+  if (!first_name) return { error: "name_required" };
+
+  const contactPatch = {
+    first_name,
+    last_name,
+    job_title: clean(formData.get("job_title")),
+    email: clean(formData.get("email")),
+    phone: clean(formData.get("phone")),
+    linkedin: clean(formData.get("linkedin")),
+    source: clean(formData.get("source")),
+    notes: clean(formData.get("contact_notes")),
+    company_id: companyId || null,
+  };
+  const ownerId = clean(formData.get("owner_id"));
+  if (ownerId) contactPatch.owner_id = ownerId;
+
+  const { error: contactError } = await supabase.from("contacts").update(contactPatch).eq("id", contactId);
+  if (contactError) return { error: contactError.message };
+
+  const { error: leadError } = await supabase.from("lead_contacts").update({
+    group_id: clean(formData.get("group_id")) || null,
+    status: clean(formData.get("status")),
+    rsvp: clean(formData.get("rsvp")),
+    notes: clean(formData.get("lead_notes")),
+  }).eq("id", leadContactId);
+  if (leadError) return { error: leadError.message };
+
+  revalidatePath(`/leads/${leadFileId}`);
+  revalidatePath("/contacts");
+  revalidatePath("/companies");
+  return { ok: Date.now() };
+}
+
+export async function createOpportunityFromLeadContact(prevState, formData) {
+  const { supabase, user } = await requireProfile();
+  const leadFileId = clean(formData.get("lead_file_id"));
+  const contactId = clean(formData.get("contact_id"));
+  const companyId = clean(formData.get("company_id"));
+  const companyName = clean(formData.get("company_name"));
+  const stage = clean(formData.get("stage")) || "prospect";
+  if (!leadFileId || !contactId || (!companyId && !companyName)) return { error: "missing" };
+
+  let finalCompanyId = companyId;
+  if (!finalCompanyId && companyName) {
+    try { finalCompanyId = await resolveCompanyByName(supabase, companyName, user.id); }
+    catch (e) { return { error: e.message }; }
+  }
+
+  const { data: existingDeal } = await supabase
+    .from("deals")
+    .select("id")
+    .eq("lead_file_id", leadFileId)
+    .eq("company_id", finalCompanyId)
+    .limit(1)
+    .maybeSingle();
+
+  let dealId = existingDeal?.id;
+  if (!dealId) {
+    const { data: deal, error: dealError } = await supabase
+      .from("deals")
+      .insert({
+        lead_file_id: leadFileId,
+        company_id: finalCompanyId,
+        company_name: companyName,
+        owner_id: clean(formData.get("owner_id")) || user.id,
+        stage,
+        po_won: stage === "won",
+        notes: clean(formData.get("notes")),
+        created_by: user.id,
+      })
+      .select("id")
+      .single();
+    if (dealError) return { error: dealError.message };
+    dealId = deal.id;
+  } else {
+    const patch = { stage };
+    if (stage === "won") patch.po_won = true;
+    await supabase.from("deals").update(patch).eq("id", dealId);
+  }
+
+  const { error: repError } = await supabase.from("deal_reps").upsert({
+    deal_id: dealId,
+    contact_id: contactId,
+    rsvp: clean(formData.get("rsvp")) || null,
+  }, { onConflict: "deal_id,contact_id" });
+  if (repError) return { error: repError.message };
+
+  await supabase.from("lead_contacts").update({ status: stage === "won" ? "won" : "opportunity" }).eq("lead_file_id", leadFileId).eq("contact_id", contactId);
+
+  revalidatePath(`/leads/${leadFileId}`);
+  revalidatePath("/sales");
+  return { ok: Date.now(), dealId, stage };
+}
+
 export async function renameGroup(id, name, revalidate) {
   const { supabase } = await requireProfile();
   await supabase.from("contact_groups").update({ name }).eq("id", id);

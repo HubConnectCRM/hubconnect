@@ -41,7 +41,9 @@
     "status": "Durum",
     "of": "/",
     "saved": "Kaydedildi.",
-    "required": "Zorunlu"
+    "required": "Zorunlu",
+    "workflowSubtitle": "Odoo mantığında akış: Leads içinde won olanlar Sales’a geçer; Events ayrı kalır; company cache ve mail center iki ekibi de destekler.",
+    "workspaceSubtitle": "Entegre CRM çalışma alanı"
   },
   "nav": {
     "dashboard": "Panel",
@@ -52,7 +54,9 @@
     "leads": "Leads",
     "import": "İçe aktar",
     "audit": "Denetim kaydı",
-    "settings": "Ayarlar"
+    "settings": "Ayarlar",
+    "mail": "Mail Center",
+    "notifications": "Notifications"
   },
   "sales": {
     "title": "Sales",
@@ -77,7 +81,11 @@
     "typeEvent": "Etkinlik",
     "typeLead": "Lead",
     "openLeadFile": "Lead dosyasını aç",
-    "removeFromFile": "Dosyadan çıkar"
+    "removeFromFile": "Dosyadan çıkar",
+    "wonTitle": "Kazanılan Satışlar",
+    "wonSubtitle": "Burada sadece Leads içinde Won yapılan şirketler ve kişiler görünür. Event importları Events içinde kalır, Sales’ı kirletmez.",
+    "openLeads": "Leads’i aç",
+    "importSalesLeads": "Sales lead import et"
   },
   "roles": {
     "admin": "Yönetici",

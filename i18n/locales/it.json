@@ -41,7 +41,9 @@
     "status": "Stato",
     "of": "di",
     "saved": "Salvato.",
-    "required": "Obbligatorio"
+    "required": "Obbligatorio",
+    "workflowSubtitle": "Workflow stile Odoo: i lead vinti diventano Sales; gli Events restano separati; company cache e mail center supportano entrambi i team.",
+    "workspaceSubtitle": "Workspace CRM integrato"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -52,7 +54,9 @@
     "leads": "Lead",
     "import": "Importa",
     "audit": "Registro modifiche",
-    "settings": "Impostazioni"
+    "settings": "Impostazioni",
+    "mail": "Mail Center",
+    "notifications": "Notifications"
   },
   "sales": {
     "title": "Sales",
@@ -77,7 +81,11 @@
     "typeEvent": "Evento",
     "typeLead": "Lead",
     "openLeadFile": "Apri file lead",
-    "removeFromFile": "Rimuovi dal file"
+    "removeFromFile": "Rimuovi dal file",
+    "wonTitle": "Vendite vinte",
+    "wonSubtitle": "Qui compaiono solo aziende e persone segnate come Won nei Leads. Gli import Events restano negli Events e non entrano in Sales.",
+    "openLeads": "Apri Leads",
+    "importSalesLeads": "Importa lead sales"
   },
   "roles": {
     "admin": "Admin",

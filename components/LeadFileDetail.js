@@ -1,78 +1,200 @@
 "use client";
 
-import { useActionState, useEffect, useState, useTransition } from "react";
+import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { Badge, Button, Card, EmptyState, Field, Input, PageHeader, Select } from "@/components/ui";
+import NewPersonModal from "@/components/NewPersonModal";
 import Combobox from "@/components/Combobox";
 import DeleteButton from "@/components/DeleteButton";
-import { AddRepForm, RepsTable } from "@/components/DealReps";
-import {
-  addLeadGroup,
-  deleteLeadFile,
-  renameGroup,
-} from "@/app/(app)/leads/actions";
+import { addLeadGroup, createOpportunityFromLeadContact, deleteLeadFile, renameGroup, updateLeadPerson } from "@/app/(app)/leads/actions";
 import { deleteGroup } from "@/app/(app)/events/actions";
-import {
-  deleteDeal,
-  pushDealToEvent,
-  saveDeal,
-  setDealStage,
-} from "@/app/(app)/deals/actions";
+import { deleteDeal, pushDealToEvent, saveDeal, setDealStage } from "@/app/(app)/deals/actions";
 
 const STAGES = ["prospect", "in_progress", "won", "lost"];
 const STAGE_COLOR = { prospect: "gray", in_progress: "amber", won: "green", lost: "red" };
 const RSVP_COLOR = { yes: "green", no: "red", maybe: "amber" };
 
-export default function LeadFileDetail({ file, deals, groups, companies, contacts, events, owners }) {
+export default function LeadFileDetail({ file, deals, leadContacts = [], groups, companies, contacts, events, owners }) {
   const { t } = useTranslation();
   const [activeGroup, setActiveGroup] = useState("all");
+  const [tab, setTab] = useState("people");
+  const [showPerson, setShowPerson] = useState(false);
+  const [showDealForm, setShowDealForm] = useState(false);
 
-  const filtered =
-    activeGroup === "all"
-      ? deals
-      : activeGroup === "none"
-      ? deals.filter((d) => !d.group_id)
-      : deals.filter((d) => d.group_id === activeGroup);
+  const filteredDeals = useMemo(() => (
+    activeGroup === "all" ? deals : activeGroup === "none" ? deals.filter((d) => !d.group_id) : deals.filter((d) => d.group_id === activeGroup)
+  ), [deals, activeGroup]);
+
+  const filteredPeople = useMemo(() => (
+    activeGroup === "all" ? leadContacts : activeGroup === "none" ? leadContacts.filter((r) => !r.group_id) : leadContacts.filter((r) => r.group_id === activeGroup)
+  ), [leadContacts, activeGroup]);
+
+  const companyMap = new Map();
+  for (const lc of leadContacts) {
+    const c = lc.contact?.company;
+    if (c?.id || c?.name) companyMap.set(c.id || c.name, c);
+  }
+  for (const d of deals) {
+    const c = d.company || { id: d.company_id || d.company_name, name: d.company_name };
+    if (c?.id || c?.name) companyMap.set(c.id || c.name, c);
+  }
+  const companyRows = Array.from(companyMap.values()).filter(Boolean);
 
   return (
     <div className="mx-auto max-w-6xl">
-      <div className="mb-4">
-        <Button variant="ghost" href="/leads">← {t("common.back")}</Button>
-      </div>
+      <div className="mb-4"><Button variant="ghost" href="/leads">← {t("common.back")}</Button></div>
 
-      <PageHeader title={file.name} subtitle={file.description || undefined}>
+      <PageHeader title={file.name} subtitle={file.description || "People, companies and sales opportunities inside this lead workspace."}>
+        <Button onClick={() => setShowPerson(true)}>+ Add Person</Button>
+        <Button variant="secondary" onClick={() => setShowDealForm((v) => !v)}>{showDealForm ? "Hide opportunity" : "+ Create opportunity"}</Button>
+        <Button variant="secondary" href={`/import?leadFileId=${file.id}&destination=lead_file`}>Import to this file</Button>
         <DeleteButton action={deleteLeadFile} id={file.id} confirmText={t("leads.deleteConfirm")} />
       </PageHeader>
 
-      <Card className="mb-4 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-[var(--muted)]">{t("deals.add")}</h2>
+      <NewPersonModal open={showPerson} onClose={() => setShowPerson(false)} companies={companies} owners={owners} leadFiles={[file]} groups={groups.map((g) => ({ ...g, lead_file_id: file.id }))} defaultLeadFileId={file.id} title={`Add person to ${file.name}`} />
+
+      <div className="mb-4 grid gap-3 sm:grid-cols-4">
+        <button onClick={() => setTab("people")} className="text-left"><Card className={`p-4 ${tab === "people" ? "ring-2 ring-[var(--brand)]" : ""}`}><p className="text-xs text-[var(--muted)]">People</p><p className="mt-1 text-2xl font-semibold">{leadContacts.length}</p></Card></button>
+        <button onClick={() => setTab("companies")} className="text-left"><Card className={`p-4 ${tab === "companies" ? "ring-2 ring-[var(--brand)]" : ""}`}><p className="text-xs text-[var(--muted)]">Companies</p><p className="mt-1 text-2xl font-semibold">{companyRows.length}</p></Card></button>
+        <button onClick={() => setTab("deals")} className="text-left"><Card className={`p-4 ${tab === "deals" ? "ring-2 ring-[var(--brand)]" : ""}`}><p className="text-xs text-[var(--muted)]">Opportunities</p><p className="mt-1 text-2xl font-semibold">{deals.length}</p></Card></button>
+        <button onClick={() => setTab("deals")} className="text-left"><Card className="p-4"><p className="text-xs text-[var(--muted)]">Won / pushed</p><p className="mt-1 text-2xl font-semibold">{deals.filter((d) => d.stage === "won" || d.pushed_event_id).length}</p></Card></button>
+      </div>
+
+      {showDealForm && <Card className="mb-4 p-5">
+        <h2 className="mb-1 text-sm font-semibold text-[var(--muted)]">Create sales opportunity</h2>
+        <p className="mb-3 text-xs text-[var(--muted)]">Use this only when a company becomes a real sales opportunity. People can be added separately above.</p>
         <AddDealForm leadFileId={file.id} companies={companies} groups={groups} owners={owners} />
-      </Card>
+      </Card>}
 
-      <GroupManager leadFileId={file.id} groups={groups} activeGroup={activeGroup} onSelect={setActiveGroup} total={deals.length} />
+      <GroupManager leadFileId={file.id} groups={groups} activeGroup={activeGroup} onSelect={setActiveGroup} total={tab === "people" ? leadContacts.length : deals.length} />
 
-      <h2 className="mb-3 text-lg font-semibold">{t("deals.title")} ({filtered.length})</h2>
-
-      {filtered.length === 0 ? (
-        <EmptyState>{t("deals.empty")}</EmptyState>
-      ) : (
-        <div className="space-y-3">
-          {filtered.map((d, i) => (
-            <DealCard
-              key={d.id}
-              deal={d}
-              leadFileId={file.id}
-              groups={groups}
-              contacts={contacts}
-              events={events}
-              defaultOpen={i === 0 && (d.reps || []).length === 0}
-            />
-          ))}
-        </div>
+      {tab === "people" && <PeopleTable rows={filteredPeople} leadFileId={file.id} groups={groups} owners={owners} companies={companies} />}
+      {tab === "companies" && <CompanyGrid companies={companyRows} />}
+      {tab === "deals" && (
+        <>
+          <h2 className="mb-3 text-lg font-semibold">Opportunities ({filteredDeals.length})</h2>
+          {filteredDeals.length === 0 ? <EmptyState>No opportunities yet. Add people first, then create an opportunity when sales is real.</EmptyState> : <div className="space-y-3">{filteredDeals.map((d, i) => <DealCard key={d.id} deal={d} leadFileId={file.id} groups={groups} contacts={contacts} events={events} defaultOpen={i === 0 && (d.reps || []).length === 0} />)}</div>}
+        </>
       )}
     </div>
   );
+}
+
+function PeopleTable({ rows, leadFileId, groups, owners, companies }) {
+  const { t } = useTranslation();
+  const [editingId, setEditingId] = useState(null);
+  if (!rows.length) return <EmptyState>No people in this lead file yet. Import an Excel file or click Add Person.</EmptyState>;
+  return (
+    <Card className="overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="border-b border-[var(--border)] bg-[var(--background)] text-left text-[var(--muted)]">
+            <tr>
+              <th className="px-4 py-3 font-medium">Person</th>
+              <th className="px-4 py-3 font-medium">Company</th>
+              <th className="px-4 py-3 font-medium">Role</th>
+              <th className="px-4 py-3 font-medium">Email</th>
+              <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>{rows.map((r) => <LeadPersonRow key={r.id} row={r} leadFileId={leadFileId} groups={groups} owners={owners} companies={companies} editing={editingId === r.id} onEdit={() => setEditingId(r.id)} onClose={() => setEditingId(null)} />)}</tbody>
+        </table>
+      </div>
+    </Card>
+  );
+}
+
+function LeadPersonRow({ row, leadFileId, groups, owners, companies, editing, onEdit, onClose }) {
+  const c = row.contact || {};
+  const [editState, editAction, editPending] = useActionState(updateLeadPerson, {});
+  const [oppState, oppAction, oppPending] = useActionState(createOpportunityFromLeadContact, {});
+  const [companyName, setCompanyName] = useState(c.company?.name || "");
+  const [groupId, setGroupId] = useState(row.group_id || "");
+
+  useEffect(() => { if (editState?.ok) onClose(); }, [editState?.ok]);
+
+  const companyOpts = companies.map((co) => ({ value: co.name, label: co.name }));
+  const groupOpts = groups.map((g) => ({ value: g.id, label: g.name }));
+  const ownerId = c.owner_id || "";
+  const statusColor = row.status === "won" ? "green" : row.status === "opportunity" ? "amber" : row.rsvp === "no" ? "red" : row.rsvp === "yes" ? "green" : "gray";
+
+  return (
+    <>
+      <tr className="border-b border-[var(--border)] last:border-0 align-top hover:bg-[var(--background)]">
+        <td className="px-4 py-3 font-medium">{c.full_name || "—"}<div className="text-xs text-[var(--muted)]">{c.phone || ""}</div></td>
+        <td className="px-4 py-3 text-[var(--muted)]">{c.company?.name || "—"}</td>
+        <td className="px-4 py-3 text-[var(--muted)]">{c.job_title || "—"}</td>
+        <td className="px-4 py-3 text-[var(--muted)]">{c.email || "—"}</td>
+        <td className="px-4 py-3"><Badge color={statusColor}>{row.status || row.rsvp || "lead"}</Badge></td>
+        <td className="px-4 py-3 text-right">
+          <div className="flex flex-wrap justify-end gap-2">
+            <button type="button" onClick={onEdit} className="rounded-lg border border-[var(--border)] px-2 py-1 text-xs hover:border-[var(--brand)]">Edit</button>
+            <form action={oppAction}>
+              <input type="hidden" name="lead_file_id" value={leadFileId} />
+              <input type="hidden" name="contact_id" value={c.id || ""} />
+              <input type="hidden" name="company_id" value={c.company?.id || ""} />
+              <input type="hidden" name="company_name" value={c.company?.name || companyName || ""} />
+              <input type="hidden" name="owner_id" value={ownerId} />
+              <input type="hidden" name="rsvp" value={row.rsvp || ""} />
+              <input type="hidden" name="stage" value="prospect" />
+              <button type="submit" disabled={oppPending || !(c.company?.id || c.company?.name || companyName)} className="rounded-lg border border-[var(--border)] px-2 py-1 text-xs hover:border-[var(--brand)]">Opportunity</button>
+            </form>
+            <form action={oppAction}>
+              <input type="hidden" name="lead_file_id" value={leadFileId} />
+              <input type="hidden" name="contact_id" value={c.id || ""} />
+              <input type="hidden" name="company_id" value={c.company?.id || ""} />
+              <input type="hidden" name="company_name" value={c.company?.name || companyName || ""} />
+              <input type="hidden" name="owner_id" value={ownerId} />
+              <input type="hidden" name="rsvp" value={row.rsvp || "yes"} />
+              <input type="hidden" name="stage" value="won" />
+              <button type="submit" disabled={oppPending || !(c.company?.id || c.company?.name || companyName)} className="rounded-lg bg-green-600 px-2 py-1 text-xs font-medium text-white hover:bg-green-700">Mark won</button>
+            </form>
+          </div>
+          {oppState?.ok && <div className="mt-1 text-xs text-green-700">Sent to Sales ✓</div>}
+          {oppState?.error && <div className="mt-1 text-xs text-red-700">{oppState.error}</div>}
+        </td>
+      </tr>
+      {editing && (
+        <tr className="border-b border-[var(--border)] bg-[var(--background)]">
+          <td colSpan={6} className="px-4 py-4">
+            <form action={editAction} className="grid grid-cols-1 gap-3 md:grid-cols-4">
+              <input type="hidden" name="lead_file_id" value={leadFileId} />
+              <input type="hidden" name="lead_contact_id" value={row.id} />
+              <input type="hidden" name="contact_id" value={c.id || ""} />
+              <input type="hidden" name="company_id" value={c.company?.id || ""} />
+              <input type="hidden" name="company_name" value={companyName} />
+              <input type="hidden" name="group_id" value={groupId} />
+              <Field label="Full name"><Input name="full_name" defaultValue={c.full_name || ""} /></Field>
+              <Field label="Company"><Combobox options={companyOpts} value={companyName} onChange={setCompanyName} placeholder="Pick or type company" allowCustom /></Field>
+              <Field label="Job title"><Input name="job_title" defaultValue={c.job_title || ""} /></Field>
+              <Field label="Email"><Input name="email" defaultValue={c.email || ""} /></Field>
+              <Field label="Phone"><Input name="phone" defaultValue={c.phone || ""} /></Field>
+              <Field label="LinkedIn"><Input name="linkedin" defaultValue={c.linkedin || ""} /></Field>
+              <Field label="Owner"><Select name="owner_id" defaultValue={ownerId}><option value="">Keep / me</option>{owners.map((o) => <option key={o.id} value={o.id}>{o.full_name || o.email}</option>)}</Select></Field>
+              <Field label="Group"><Combobox options={groupOpts} value={groupId} onChange={setGroupId} placeholder="No group" /></Field>
+              <Field label="Lead status"><Select name="status" defaultValue={row.status || "lead"}><option value="lead">Lead</option><option value="opportunity">Opportunity</option><option value="won">Won</option><option value="lost">Lost</option></Select></Field>
+              <Field label="RSVP"><Select name="rsvp" defaultValue={row.rsvp || ""}><option value="">Unknown</option><option value="yes">Yes</option><option value="maybe">Maybe</option><option value="no">No</option></Select></Field>
+              <Field label="Source"><Input name="source" defaultValue={c.source || ""} /></Field>
+              <Field label="Lead notes" className="md:col-span-2"><Input name="lead_notes" defaultValue={row.notes || ""} /></Field>
+              <Field label="Contact notes" className="md:col-span-2"><Input name="contact_notes" defaultValue={c.notes || ""} /></Field>
+              <div className="flex items-end justify-end gap-2 md:col-span-4">
+                <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+                <Button type="submit" disabled={editPending}>{editPending ? "Saving…" : "Save changes"}</Button>
+              </div>
+              {editState?.error && <p className="text-sm text-red-700 md:col-span-4">{editState.error}</p>}
+            </form>
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
+
+function CompanyGrid({ companies }) {
+  if (!companies.length) return <EmptyState>No companies yet. Import or add people with a company name.</EmptyState>;
+  return <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{companies.map((c) => <Card key={c.id || c.name} className="p-4"><p className="font-semibold">{c.name}</p>{c.website && <a href={c.website} target="_blank" className="mt-1 block text-xs text-[var(--brand)] hover:underline">{c.website}</a>}{c.overview && <p className="mt-2 line-clamp-3 text-xs text-[var(--muted)]">{c.overview}</p>}</Card>)}</div>;
 }
 
 function AddDealForm({ leadFileId, companies, groups, owners }) {
