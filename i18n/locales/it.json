@@ -37,7 +37,7 @@
     "city": "Città",
     "phone": "Telefono",
     "website": "Sito web",
-    "date": "Data",
+    "date": "Data", "daily": "Giornaliero", "weekly": "Settimanale", "monthly": "Mensile", "yearly": "Annuale", "past": "Passati", "team": "Team",
     "status": "Stato",
     "of": "di",
     "saved": "Salvato.",
@@ -56,8 +56,11 @@
     "audit": "Registro modifiche",
     "settings": "Impostazioni",
     "mail": "Mail Center",
-    "notifications": "Notifications",
-    "calls": "Chiamate"
+    "contactCenter": "HQ",
+    "hq": "HQ",
+    "notifications": "Notifiche",
+    "accreditation": "Accreditamento",
+    "more": "Altro"
   },
   "sales": {
     "title": "Sales",
@@ -101,7 +104,23 @@
     "needAccount": "Non hai un account? Registrati",
     "haveAccount": "Hai già un account? Accedi",
     "checkEmail": "Controlla la posta per confermare l'email, poi accedi.",
-    "genericError": "Accesso non riuscito. Controlla i dati e riprova."
+    "genericError": "Accesso non riuscito. Controlla i dati e riprova.",
+    "internalWorkspace": "Spazio di lavoro interno",
+    "employeeRegistration": "Registrazione dipendente",
+    "resetTitle": "Reimposta la password",
+    "welcomeBack": "Bentornato",
+    "registrationHint": "Usa il codice aziendale monouso fornito da un admin.",
+    "resetHint": "Inserisci l'email collegata al tuo account.",
+    "secureHint": "Accesso sicuro per il team Retail Hub.",
+    "companyCode": "Codice aziendale",
+    "sendLink": "Invia link",
+    "registrationSwitch": "Hai un codice aziendale? Crea l'account dipendente",
+    "backToLogin": "Torna all'accesso",
+    "forgotPassword": "Password dimenticata?",
+    "resetSent": "Il link per reimpostare la password è stato inviato via email.",
+    "passwordLength": "La password deve contenere almeno 8 caratteri.",
+    "registrationFailed": "Impossibile creare l'account.",
+    "registrationComplete": "Il tuo account è attivo. Ora puoi accedere."
   },
   "dashboard": {
     "title": "Dashboard",
@@ -180,7 +199,12 @@
     "allSources": "Tutte le origini",
     "sourceEvent": "Team eventi",
     "sourceSales": "Sales",
-    "allRsvp": "Tutti gli RSVP"
+    "allRsvp": "Tutti gli RSVP",
+    "venue": "Sede",
+    "status": "Stato evento",
+    "prospectNumber": "Capienza prevista",
+    "days": "giorni",
+    "detailAccreditation": "Apri accreditamento live"
   },
   "deals": {
     "title": "Deal",
@@ -298,6 +322,7 @@
     "importing": "Importazione…",
     "done": "Importati {{count}} contatti ({{skipped}} saltati come duplicati).",
     "noFile": "Nessun file selezionato.",
+    "import": "Importa",
     "fields": {
       "first_name": "Nome",
       "last_name": "Cognome",
@@ -349,6 +374,8 @@
       "DELETE": "Eliminato"
     }
   },
+  "setup": { "title": "Collega Supabase", "body": "Aggiungi i dati di connessione del progetto per avviare HubConnect.", "envHint": "Crea .env.local partendo da .env.example.", "step1": "Apri le impostazioni del progetto Supabase.", "step2": "Copia URL progetto e chiave anon.", "step3": "Aggiungili a .env.local.", "step4": "Riavvia l'app." },
+  "mail": { "title": "Centro email", "subtitle": "Invia email tramite MailBos da HubConnect", "notConnected": "MailBos non collegato", "connectHint": "Vai alle Impostazioni per collegare MailBos.", "goToSettings": "Vai alle Impostazioni", "connectedSubtitle": "Invio come {{email}}", "manageConnection": "Gestisci connessione", "compose": "Componi", "newMail": "Nuova email", "to": "A", "subject": "Oggetto", "body": "Messaggio", "send": "Invia", "sentOk": "Inviata ✓", "sent": "Inviate", "emptySent": "Nessuna email inviata.", "contact": "Contatto", "status": "Stato", "replied": "Risposta ricevuta", "opened": "Aperta", "sent_badge": "Inviata", "inbox": "Posta in arrivo", "emptyInbox": "Nessun messaggio nella posta in arrivo.", "noSubject": "Nessun oggetto", "knownContact": "Contatto CRM", "detailError": "Impossibile caricare il messaggio.", "composeHint": "Scegli un contatto CRM o inserisci un indirizzo email.", "liveFallback": "I dati live di MailBos non sono temporaneamente disponibili; viene mostrata la copia CRM dei messaggi inviati." },
   "settings": {
     "title": "Impostazioni",
     "profile": "Il tuo profilo",
@@ -363,27 +390,33 @@
     "addMemberHint": "Crea un account con una password temporanea da condividere.",
     "shareCredentials": "Account creato — condividi con {{email}}:",
     "tempPassword": "Password temporanea",
-    "noServiceKey": "Service key mancante. Aggiungi SUPABASE_SERVICE_ROLE_KEY a .env.local."
+    "noServiceKey": "Service key mancante. Aggiungi SUPABASE_SERVICE_ROLE_KEY a .env.local.",
+    "mailbosTitle": "MailBos — Centro email",
+    "mailbosHint": "Collega MailBos per inviare email direttamente da HubConnect.",
+    "mailbosKeyLabel": "Chiave API MailBos",
+    "mailbosConnect": "Collega",
+    "mailbosConnected": "Collegato — invio come {{email}}",
+    "mailbosDisconnect": "Disconnetti",
+    "mailbosInvalidKey": "Chiave non valida.",
+    "mailbosUnreachable": "MailBos non raggiungibile. Riprova più tardi.",
+    "companyCode": "Codice aziendale dipendente",
+    "companyCodeHint": "Crea un codice di registrazione monouso per un nuovo dipendente.",
+    "optionalEmail": "Email dipendente (facoltativa)",
+    "createCode": "Crea codice",
+    "oneTimeCode": "Codice monouso",
+    "copyCode": "Copia",
+    "deleteUser": "Elimina account",
+    "deleteUserConfirm": "Eliminare definitivamente questo account dipendente?"
   },
-  "calls": {
-    "title": "Chiamate",
-    "subtitle": "Scegli i colleghi e avvia una chiamata video o audio — gratis, nessun servizio di terze parti.",
-    "video": "Video",
-    "audioOnly": "Solo audio",
-    "start": "Avvia chiamata",
-    "starting": "Avvio…",
-    "incomingCall": "Chiamata in arrivo…",
-    "accept": "Accetta",
-    "decline": "Rifiuta",
-    "inCall": "In chiamata",
-    "connecting": "Connessione…",
-    "participants": "{{count}} in chiamata",
-    "you": "Tu",
-    "mute": "Silenzia",
-    "unmute": "Riattiva audio",
-    "cameraOff": "Spegni videocamera",
-    "cameraOn": "Accendi videocamera",
-    "hangUp": "Riaggancia",
-    "mediaError": "Impossibile accedere a videocamera/microfono. Controlla i permessi del browser."
-  }
+  "web": { "activePipeline": "La mia pipeline attiva", "opportunities": "opportunità", "todayWorkspace": "Il tuo spazio di oggi", "hello": "Ciao, {{name}}", "personalSubtitle": "Pipeline, follow-up ed eventi imminenti in un solo posto.", "reconnect": "Ricontattare", "wonSales": "Vendite vinte", "wonSalesHint": "Vendite concluse", "upcomingEvents": "Eventi imminenti", "upcomingEventsHint": "Prossimi eventi in calendario", "leadFiles": "File lead", "leadFilesHint": "Spazi di lavoro della pipeline", "forYou": "Per te", "viewAll": "Vedi tutto", "calendar": "Calendario", "noUpcomingEvents": "Nessun evento imminente.", "locationPending": "Località da definire", "days": "giorni", "workspace": "Spazio Retail Hub", "crm": "CRM Retail Hub", "liveData": "Un team, un'unica fonte dati live" },
+  "accreditation": { "title": "Accreditamento live", "subtitle": "Check-in, badge e arrivi condivisi durante l'evento.", "event": "Evento", "confirmed": "Confermati", "arrived": "Arrivati", "waiting": "In attesa", "badgeIssues": "Problemi badge", "search": "Cerca nome, azienda o email…", "allBadges": "Tutti gli stati badge", "syncing": "Sincronizzazione live…", "empty": "Nessun ospite confermato per questo evento.", "markArrived": "Segna arrivato", "undo": "Annulla arrivo", "open": "Apri accreditamento", "export": "Esporta Excel" },
+  "badges": { "exists": "Badge presente", "missing": "Badge mancante", "noBadge": "Senza badge" },
+  "participants": { "guest": "Ospite", "speaker": "Speaker", "reservedSeat": "Posto riservato", "staff": "Staff" },
+  "eventStatus": { "planning": "In pianificazione", "open": "Registrazioni aperte", "confirmed": "Confermato", "cancelled": "Annullato", "completed": "Completato" },
+  "leadPipeline": { "probability": "Probabilità", "focus": "Priorità", "push": "Insisti", "plan": "Pianifica", "allOwners": "Tutti i responsabili", "reconnect": "Data ricontatto", "nextStep": "Prossimo passo", "estimatedValue": "Valore stimato" },
+  "leadPerformance": { "eyebrow": "Performance T", "title": "Performance probabilità lead", "subtitle": "Confronta gli esiti T90, T70 e T50 su tutti i file lead o per evento.", "eventFilter": "Filtro evento", "allEvents": "Tutti gli eventi · tutti i lead", "unlinked": "Lead non collegati", "files": "File lead", "filesLower": "file", "allLeads": "Tutti i lead", "sales": "Vendite", "failed": "Falliti", "postponed": "Posticipati", "open": "Aperti", "probabilityGroup": "Gruppo probabilità", "eventBreakdown": "Dettaglio per evento", "thisFile": "Questo file lead" },
+  "performance": { "title": "Performance", "subtitle": "Conversione lead e performance vendite dai dati Supabase condivisi.", "day": "Giornaliera", "week": "Settimanale", "month": "Mensile", "year": "Annuale", "leadConversion": "Conversione lead", "dealPerformance": "Performance vendite", "won": "Vinti", "lost": "Persi", "active": "Attivi", "postponed": "Posticipati", "total": "Totale", "noData": "Nessun dato in questo periodo." },
+  "chat": { "title": "Chat", "subtitle": "Messaggistica interna sincronizzata in tempo reale con HubConnect iOS.", "newChat": "Nuova chat", "newGroup": "Nuovo gruppo", "groupName": "Nome gruppo", "groupNamePlaceholder": "es. Team Grocery Connect", "directMessage": "Messaggio diretto", "searchPeople": "Cerca dipendenti…", "directHint": "Scegli un collega e inizia subito a scrivere.", "groupHint": "Assegna un nome al gruppo e scegli i primi membri.", "selectPerson": "Seleziona una persona", "selectPeople": "Seleziona i membri del gruppo", "selectedCount": "{{count}} selezionati", "startChat": "Avvia chat", "createGroup": "Crea gruppo", "creating": "Creazione…", "createFailed": "Impossibile creare la chat. Riprova.", "noPeople": "Nessun dipendente corrispondente.", "messagePlaceholder": "Scrivi un messaggio…", "send": "Invia", "photo": "Foto", "edited": "modificato", "seenBy": "Visto da", "delivered": "Consegnato", "sent": "Inviato", "members": "Membri", "addMembers": "Aggiungi membri", "remove": "Rimuovi", "makeAdmin": "Rendi admin", "leave": "Lascia chat", "editGroup": "Modifica gruppo", "empty": "Nessuna chat.", "noMessages": "Nessun messaggio. Inizia la conversazione.", "company": "Azienda", "position": "Team", "event": "Evento", "custom": "Personalizzato", "you": "Tu" },
+  "contactCenter": { "title": "Contact Center", "subtitle": "Chiamate, conversazioni MailBos e calendario condiviso del team in un unico posto.", "logCall": "Registra chiamata", "share": "Condividi contatto", "chooseTeammate": "Scegli collega", "spoke": "Contattato", "noAnswer": "Nessuna risposta", "callBack": "Richiamare", "sharedWith": "Condiviso con {{name}}", "mailTitle": "Mail Center", "mailDescription": "Invia email personalizzate con MailBos e consulta posta, cronologia, aperture e risposte.", "callTitle": "Call Center", "callDescription": "Trova una persona o azienda, avvia la chiamata e salva l'esito nel CRM condiviso.", "calendarTitle": "Calendario del team", "calendarDescription": "Pianifica riunioni e visualizza i calendari selezionati del team.", "open": "Apri", "backToCenter": "Contact Center", "mailbosConnected": "MailBos collegato · {{email}}", "mailbosDisconnected": "MailBos non collegato", "callsToday": "Le mie chiamate oggi", "meetingsToday": "Le mie riunioni oggi", "totalContacts": "Contatti condivisi", "searchContacts": "Cerca nome, azienda, email o telefono…", "noPhone": "Nessun numero di telefono", "startCall": "Chiama", "logResult": "Registra esito", "recentCalls": "Chiamate recenti", "noCalls": "Nessuna chiamata registrata.", "callOutcome": "Esito della chiamata", "interactionType": "Tipo di interazione", "result": "Esito", "relatedRecord": "Evento o lead collegato", "generalCall": "Chiamata generale — nessun record collegato", "eventRecord": "Evento", "leadRecord": "Lead", "pending": "In attesa", "outcomes": { "answered": "Risposta", "no_answer": "Nessuna risposta" }, "newMeeting": "Nuova riunione", "showCalendars": "Mostra calendari", "me": "Io", "noMeetings": "Nessuna riunione nei calendari selezionati.", "meetingTitle": "Titolo riunione", "contactOptional": "Contatto (facoltativo)", "startsAt": "Inizio", "endsAt": "Fine", "meetingLink": "Link riunione", "busy": "Occupato", "join": "Partecipa" },
+  "calls": { "title": "Chiamate", "subtitle": "Scegli i colleghi e avvia una chiamata video o audio — gratis, nessun servizio di terze parti.", "video": "Video", "audioOnly": "Solo audio", "start": "Avvia chiamata", "starting": "Avvio…", "incomingCall": "Chiamata in arrivo…", "accept": "Accetta", "decline": "Rifiuta", "inCall": "In chiamata", "connecting": "Connessione…", "participants": "{{count}} in chiamata", "you": "Tu", "mute": "Silenzia", "unmute": "Riattiva audio", "cameraOff": "Spegni videocamera", "cameraOn": "Accendi videocamera", "hangUp": "Riaggancia", "mediaError": "Impossibile accedere a videocamera/microfono. Controlla i permessi del browser." }
 }

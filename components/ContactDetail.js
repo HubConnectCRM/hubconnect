@@ -1,18 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import { useActionState } from "react";
 import { useTranslation } from "react-i18next";
-import { Badge, Button, Card, PageHeader } from "@/components/ui";
+import { Badge, Button, Card, Input, PageHeader, Select } from "@/components/ui";
 import DeleteButton from "@/components/DeleteButton";
 import Timeline from "@/components/Timeline";
 import AddInteraction from "@/components/AddInteraction";
 import AddToEvent from "@/components/AddToEvent";
-import { deleteContact } from "@/app/(app)/contacts/actions";
+import { deleteContact, logContactCall, shareContact } from "@/app/(app)/contacts/actions";
 import { STATUS_COLORS } from "@/lib/constants";
 
 const RSVP_COLOR = { yes: "green", no: "red", maybe: "amber" };
 
-export default function ContactDetail({ contact, interactions, registrations, events }) {
+export default function ContactDetail({ contact, interactions, registrations, events, teammates = [], callLogs = [], shares = [] }) {
   const { t } = useTranslation();
   const location = [contact.city, contact.country].filter(Boolean).join(", ");
 
@@ -136,6 +137,7 @@ export default function ContactDetail({ contact, interactions, registrations, ev
         </div>
 
         <div className="space-y-4 md:col-span-2">
+          <ContactCollaboration contact={contact} teammates={teammates} callLogs={callLogs} shares={shares} />
           <Card className="p-5">
             <h2 className="mb-3 text-lg font-semibold">{t("interactions.title")}</h2>
             <AddInteraction contactId={contact.id} />
@@ -148,6 +150,13 @@ export default function ContactDetail({ contact, interactions, registrations, ev
       </div>
     </div>
   );
+}
+
+function ContactCollaboration({ contact, teammates, callLogs, shares }) {
+  const { t } = useTranslation();
+  const [shareState, shareAction, sharePending] = useActionState(shareContact, {});
+  const [callState, callAction, callPending] = useActionState(logContactCall, {});
+  return <Card className="p-5"><h2 className="text-lg font-semibold">{t("contactCenter.title")}</h2><div className="mt-4 grid gap-5 lg:grid-cols-2"><form action={callAction} className="space-y-2"><input type="hidden" name="contact_id" value={contact.id} /><p className="text-sm font-medium">{t("contactCenter.logCall")}</p><Select name="interaction_type" defaultValue="Telefon"><option>Telefon</option><option>WhatsApp</option><option>FaceTime</option></Select><Select name="outcome" defaultValue="answered"><option value="answered">{t("contactCenter.spoke")}</option><option value="no_answer">{t("contactCenter.noAnswer")}</option></Select><Input name="note" placeholder={t("common.notes")} /><Button type="submit" disabled={callPending}>{t("common.save")}</Button>{callState?.error && <p className="text-xs text-red-500">{callState.error}</p>}</form><form action={shareAction} className="space-y-2"><input type="hidden" name="contact_id" value={contact.id} /><p className="text-sm font-medium">{t("contactCenter.share")}</p><Select name="shared_with" required defaultValue=""><option value="">{t("contactCenter.chooseTeammate")}</option>{teammates.map((person) => <option key={person.id} value={person.id}>{person.full_name || person.email}</option>)}</Select><Input name="note" placeholder={t("common.notes")} /><Button type="submit" disabled={sharePending}>{t("contactCenter.share")}</Button>{shareState?.ok && <p className="text-xs text-green-500">{t("common.saved")}</p>}</form></div>{(callLogs.length > 0 || shares.length > 0) && <div className="mt-5 border-t border-[var(--border)] pt-4"><div className="grid gap-2 md:grid-cols-2">{callLogs.slice(0,5).map((log) => <div key={log.id} className="rounded-xl bg-white/[0.03] p-3 text-xs"><strong>{log.interaction_type} · {t(`contactCenter.outcomes.${log.outcome || "answered"}`)}</strong><p className="mt-1 text-[var(--muted)]">{log.note || ""} · {new Date(log.created_at).toLocaleString()}</p></div>)}{shares.slice(0,5).map((share) => <div key={share.id} className="rounded-xl bg-white/[0.03] p-3 text-xs"><strong>{t("contactCenter.sharedWith", { name: share.shared_with_profile?.full_name || share.shared_with_profile?.email })}</strong><p className="mt-1 text-[var(--muted)]">{share.note || ""}</p></div>)}</div></div>}</Card>;
 }
 
 function Row({ label, value }) {

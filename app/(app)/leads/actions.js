@@ -9,8 +9,15 @@ function clean(v) {
   return s === "" ? null : s;
 }
 
+function canManageSales(profile) {
+  return profile?.role === "admin" || profile?.role === "sales";
+}
+
+const salesDenied = () => ({ error: "sales_read_only" });
+
 export async function saveLeadFile(prevState, formData) {
-  const { supabase, user } = await requireProfile();
+  const { supabase, user, profile } = await requireProfile();
+  if (!canManageSales(profile)) return salesDenied();
   const id = clean(formData.get("id"));
   const name = clean(formData.get("name"));
   if (!name) return { error: "name_required" };
@@ -47,14 +54,41 @@ export async function saveLeadFile(prevState, formData) {
 }
 
 export async function deleteLeadFile(id) {
-  const { supabase } = await requireProfile();
+  const { supabase, profile } = await requireProfile();
+  if (!canManageSales(profile)) return salesDenied();
   await supabase.from("lead_files").delete().eq("id", id);
   revalidatePath("/leads");
   redirect("/leads");
 }
 
+export async function linkLeadFileToEvent(prevState, formData) {
+  const { supabase, user, profile } = await requireProfile();
+  if (!canManageSales(profile)) return salesDenied();
+  const leadFileId = clean(formData.get("lead_file_id"));
+  if (!leadFileId) return { error: "missing" };
+
+  const linkedEventId = clean(formData.get("linked_event_id"));
+  const status = clean(formData.get("status")) || "draft";
+  const { error } = await supabase
+    .from("lead_files")
+    .update({
+      linked_event_id: linkedEventId,
+      status,
+      approval_status: status,
+      approved_at: status === "approved" ? new Date().toISOString() : null,
+      approved_by: status === "approved" ? user.id : null,
+    })
+    .eq("id", leadFileId);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/leads/${leadFileId}`);
+  revalidatePath("/events");
+  return { ok: Date.now() };
+}
+
 export async function addLeadContact(prevState, formData) {
-  const { supabase, user } = await requireProfile();
+  const { supabase, user, profile } = await requireProfile();
+  if (!canManageSales(profile)) return salesDenied();
   const leadFileId = clean(formData.get("lead_file_id"));
   const contactId = clean(formData.get("contact_id"));
   if (!leadFileId || !contactId) return { error: "missing" };
@@ -76,15 +110,31 @@ export async function addLeadContact(prevState, formData) {
 }
 
 export async function removeLeadContact(id, leadFileId) {
-  const { supabase } = await requireProfile();
+  const { supabase, profile } = await requireProfile();
+  if (!canManageSales(profile)) return salesDenied();
   await supabase.from("lead_contacts").delete().eq("id", id);
   revalidatePath(`/leads/${leadFileId}`);
 }
 
 export async function updateLeadContact(id, updates, leadFileId) {
-  const { supabase } = await requireProfile();
+  const { supabase, profile } = await requireProfile();
+  if (!canManageSales(profile)) return salesDenied();
   await supabase.from("lead_contacts").update(updates).eq("id", id);
   revalidatePath(`/leads/${leadFileId}`);
+}
+
+export async function setLeadPipelineStage(leadId, stage, leadFileId) {
+  const { supabase, user, profile } = await requireProfile();
+  if (!canManageSales(profile)) return salesDenied();
+  const value = Number(stage);
+  if (!leadId || !Number.isInteger(value) || value < 0 || value > 6) return { error: "invalid_stage" };
+
+  const { error } = await supabase.from("lead_contacts").update({ pipeline_stage: value }).eq("id", leadId);
+  if (error) return { error: error.message };
+  const { error: timelineError } = await supabase.from("lead_pipeline_events").insert({ lead_id: leadId, stage: value, changed_by: user.id });
+  if (timelineError) return { error: timelineError.message };
+  revalidatePath(`/leads/${leadFileId}`);
+  return { ok: Date.now() };
 }
 
 
@@ -116,7 +166,8 @@ function splitFullName(fullName) {
 }
 
 export async function updateLeadPerson(prevState, formData) {
-  const { supabase, user } = await requireProfile();
+  const { supabase, user, profile } = await requireProfile();
+  if (!canManageSales(profile)) return salesDenied();
   const leadFileId = clean(formData.get("lead_file_id"));
   const leadContactId = clean(formData.get("lead_contact_id"));
   const contactId = clean(formData.get("contact_id"));
@@ -154,6 +205,11 @@ export async function updateLeadPerson(prevState, formData) {
     status: clean(formData.get("status")),
     rsvp: clean(formData.get("rsvp")),
     notes: clean(formData.get("lead_notes")),
+    probability: clean(formData.get("probability")) || "T50",
+    reconnect_at: clean(formData.get("reconnect_at")),
+    next_step: clean(formData.get("next_step")),
+    estimated_value: Number(clean(formData.get("estimated_value")) || 0),
+    owner_id: ownerId || user.id,
   }).eq("id", leadContactId);
   if (leadError) return { error: leadError.message };
 
@@ -164,7 +220,8 @@ export async function updateLeadPerson(prevState, formData) {
 }
 
 export async function createOpportunityFromLeadContact(prevState, formData) {
-  const { supabase, user } = await requireProfile();
+  const { supabase, user, profile } = await requireProfile();
+  if (!canManageSales(profile)) return salesDenied();
   const leadFileId = clean(formData.get("lead_file_id"));
   const contactId = clean(formData.get("contact_id"));
   const companyId = clean(formData.get("company_id"));
@@ -225,13 +282,15 @@ export async function createOpportunityFromLeadContact(prevState, formData) {
 }
 
 export async function renameGroup(id, name, revalidate) {
-  const { supabase } = await requireProfile();
+  const { supabase, profile } = await requireProfile();
+  if (!canManageSales(profile)) return salesDenied();
   await supabase.from("contact_groups").update({ name }).eq("id", id);
   if (revalidate) revalidatePath(revalidate);
 }
 
 export async function addLeadGroup(prevState, formData) {
-  const { supabase, user } = await requireProfile();
+  const { supabase, user, profile } = await requireProfile();
+  if (!canManageSales(profile)) return salesDenied();
   const leadFileId = clean(formData.get("lead_file_id"));
   const name = clean(formData.get("name"));
   if (!leadFileId || !name) return { error: "missing" };

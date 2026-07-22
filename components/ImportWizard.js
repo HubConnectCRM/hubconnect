@@ -30,9 +30,11 @@ const FIELD_LABELS = {
   next_step: "Next step",
   rsvp: "RSVP / yes-no",
   gdpr_consent: "GDPR consent",
+  hub_consent: "Hub data consent",
+  partner_consent: "Partner data consent",
 };
 
-const EXTENDED_FIELDS = Array.from(new Set([...IMPORT_FIELDS, "owner", "response_date", "final_decision", "event", "topic", "last_contact", "last_action", "next_step", "rsvp", "gdpr_consent", "linkedin", "website"]));
+const EXTENDED_FIELDS = Array.from(new Set([...IMPORT_FIELDS, "owner", "response_date", "final_decision", "event", "topic", "last_contact", "last_action", "next_step", "rsvp", "hub_consent", "partner_consent", "gdpr_consent", "linkedin", "website"]));
 
 const EXACT = {
   company: ["company", "company name", "client", "clients", "cliente", "azienda", "account", "brand"],
@@ -49,9 +51,11 @@ const EXACT = {
   last_contact: ["last contact", "ultimo contatto", "ultima data"],
   last_action: ["last action", "ultima azioni", "ultima azione", "feedback", "action", "azione"],
   next_step: ["next step", "next", "follow up", "prossimo step"],
-  rsvp: ["si/no", "sì/no", "yes/no", "rsvp", "confirmed", "confermato", "da invitare", "attendance"],
+  rsvp: ["si/no", "sì/no", "yes/no", "rsvp", "confirmed", "confermato", "da invitare", "attendance", "presenza", "presence"],
   final_decision: ["trattamento", "decisione finale", "final decision", "esito", "attendance final"],
   gdpr_consent: ["gdpr", "privacy", "trattamento dati", "consenso privacy"],
+  hub_consent: ["trattamento dati hub", "hub consent", "consenso hub"],
+  partner_consent: ["trattamento dati partner", "partner consent", "consenso partner"],
   country: ["country", "paese", "ülke", "ulke", "nation"],
   city: ["city", "città", "citta", "şehir", "sehir"],
   source: ["source", "origin", "kaynak", "list", "provenienza"],
@@ -130,7 +134,7 @@ function scoreSheet(sheet) {
 function matchHeaderToField(header, used) {
   const h = norm(header);
   if (!h) return { field: "", score: 0 };
-  const priority = ["email", "phone", "company", "first_name", "last_name", "full_name", "job_title", "response_date", "final_decision", "rsvp", "event", "owner", "topic", "last_contact", "last_action", "next_step", "gdpr_consent", "country", "city", "source", "linkedin", "website", "notes"];
+  const priority = ["email", "phone", "company", "first_name", "last_name", "full_name", "job_title", "response_date", "final_decision", "rsvp", "event", "owner", "topic", "last_contact", "last_action", "next_step", "hub_consent", "partner_consent", "gdpr_consent", "country", "city", "source", "linkedin", "website", "notes"];
   let best = { field: "", score: 0 };
   for (const field of priority) {
     if (used.has(field) && !["notes", "topic"].includes(field)) continue;
@@ -230,7 +234,7 @@ function mapRowsForSheet(sheet, forcedMapping, forcedHeaderRow) {
   }).filter((o) => o.first_name || o.last_name || o.full_name || o.email || o.company);
 }
 
-export default function ImportWizard({ existingEmails, leadFiles = [], events = [], owners = [], defaultLeadFileId = "", defaultDestination = "" }) {
+export default function ImportWizard({ existingEmails, leadFiles = [], events = [], owners = [], defaultLeadFileId = "", defaultDestination = "", defaultEventId = "" }) {
   const { t } = useTranslation();
   const router = useRouter();
   const emailSet = useMemo(() => new Set(existingEmails), [existingEmails]);
@@ -245,7 +249,7 @@ export default function ImportWizard({ existingEmails, leadFiles = [], events = 
   const [importAllSheets, setImportAllSheets] = useState(false);
   const [leadFileId, setLeadFileId] = useState(defaultLeadFileId || "");
   const [leadFileName, setLeadFileName] = useState("");
-  const [eventId, setEventId] = useState("");
+  const [eventId, setEventId] = useState(defaultEventId);
   const [eventName, setEventName] = useState("");
   const [ownerId, setOwnerId] = useState("");
   const [createDeals, setCreateDeals] = useState(false);

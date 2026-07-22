@@ -37,7 +37,7 @@
     "city": "Şehir",
     "phone": "Telefon",
     "website": "Web sitesi",
-    "date": "Tarih",
+    "date": "Tarih", "daily": "Günlük", "weekly": "Haftalık", "monthly": "Aylık", "yearly": "Yıllık", "past": "Geçmiş", "team": "Ekip",
     "status": "Durum",
     "of": "/",
     "saved": "Kaydedildi.",
@@ -56,8 +56,11 @@
     "audit": "Denetim kaydı",
     "settings": "Ayarlar",
     "mail": "Mail Center",
-    "notifications": "Notifications",
-    "calls": "Görüşmeler"
+    "contactCenter": "HQ",
+    "hq": "HQ",
+    "notifications": "Bildirimler",
+    "accreditation": "Akreditasyon",
+    "more": "Daha Fazla"
   },
   "sales": {
     "title": "Sales",
@@ -101,7 +104,23 @@
     "needAccount": "Hesabın yok mu? Kayıt ol",
     "haveAccount": "Zaten hesabın var mı? Giriş yap",
     "checkEmail": "E-postanı onaylamak için gelen kutunu kontrol et, sonra giriş yap.",
-    "genericError": "Giriş yapılamadı. Bilgilerini kontrol edip tekrar dene."
+    "genericError": "Giriş yapılamadı. Bilgilerini kontrol edip tekrar dene.",
+    "internalWorkspace": "Şirket içi çalışma alanı",
+    "employeeRegistration": "Çalışan kaydı",
+    "resetTitle": "Şifreni yenile",
+    "welcomeBack": "Tekrar hoş geldin",
+    "registrationHint": "Admin tarafından verilen tek kullanımlık şirket kodunu kullan.",
+    "resetHint": "Hesabına bağlı e-posta adresini yaz.",
+    "secureHint": "Retail Hub ekibine ait güvenli giriş.",
+    "companyCode": "Şirket kodu",
+    "sendLink": "Bağlantı gönder",
+    "registrationSwitch": "Şirket kodun var mı? Çalışan kaydı oluştur",
+    "backToLogin": "Giriş ekranına dön",
+    "forgotPassword": "Şifremi unuttum",
+    "resetSent": "Şifre yenileme bağlantısı e-posta adresine gönderildi.",
+    "passwordLength": "Şifre en az 8 karakter olmalı.",
+    "registrationFailed": "Kayıt oluşturulamadı.",
+    "registrationComplete": "Hesabın aktif edildi. Şimdi giriş yapabilirsin."
   },
   "dashboard": {
     "title": "Panel",
@@ -180,7 +199,12 @@
     "allSources": "Tüm kaynaklar",
     "sourceEvent": "Event ekibi",
     "sourceSales": "Sales",
-    "allRsvp": "Tüm katılım"
+    "allRsvp": "Tüm katılım",
+    "venue": "Mekan",
+    "status": "Etkinlik durumu",
+    "prospectNumber": "Hedef kapasite",
+    "days": "gün",
+    "detailAccreditation": "Canlı akreditasyonu aç"
   },
   "deals": {
     "title": "Deal'ler",
@@ -298,6 +322,7 @@
     "importing": "Aktarılıyor…",
     "done": "{{count}} kişi aktarıldı ({{skipped}} mükerrer atlandı).",
     "noFile": "Dosya seçilmedi.",
+    "import": "İçe aktar",
     "fields": {
       "first_name": "Ad",
       "last_name": "Soyad",
@@ -349,6 +374,8 @@
       "DELETE": "Silindi"
     }
   },
+  "setup": { "title": "Supabase'i bağla", "body": "HubConnect'i çalıştırmak için proje bağlantı bilgilerini ekle.", "envHint": ".env.example dosyasından .env.local oluştur.", "step1": "Supabase proje ayarlarını aç.", "step2": "Proje URL'sini ve anon anahtarını kopyala.", "step3": "Bunları .env.local'e ekle.", "step4": "Uygulamayı yeniden başlat." },
+  "mail": { "title": "Mail Merkezi", "subtitle": "HubConnect'ten MailBos ile e-posta gönder", "notConnected": "MailBos bağlı değil", "connectHint": "MailBos'u bağlamak için Ayarlar'a git.", "goToSettings": "Ayarlara git", "connectedSubtitle": "{{email}} olarak gönderiliyor", "manageConnection": "Bağlantıyı yönet", "compose": "Yeni ileti", "newMail": "Yeni e-posta", "to": "Alıcı", "subject": "Konu", "body": "Mesaj", "send": "Gönder", "sentOk": "Gönderildi ✓", "sent": "Gönderilenler", "emptySent": "Henüz e-posta gönderilmedi.", "contact": "Kişi", "status": "Durum", "replied": "Yanıtlandı", "opened": "Açıldı", "sent_badge": "Gönderildi", "inbox": "Gelen Kutusu", "emptyInbox": "Gelen kutusunda mesaj bulunamadı.", "noSubject": "Konu yok", "knownContact": "CRM kişisi", "detailError": "Mesaj yüklenemedi.", "composeHint": "CRM'deki bir kişiyi seç veya istediğin e-posta adresini yaz.", "liveFallback": "MailBos canlı verisine geçici olarak ulaşılamıyor; gönderilenlerin CRM kopyası gösteriliyor." },
   "settings": {
     "title": "Ayarlar",
     "profile": "Profilin",
@@ -363,27 +390,33 @@
     "addMemberHint": "Paylaşmak için geçici parolalı bir hesap oluşturur.",
     "shareCredentials": "Hesap oluşturuldu — {{email}} ile paylaş:",
     "tempPassword": "Geçici parola",
-    "noServiceKey": "Service key yok. .env.local'e SUPABASE_SERVICE_ROLE_KEY ekle."
+    "noServiceKey": "Service key yok. .env.local'e SUPABASE_SERVICE_ROLE_KEY ekle.",
+    "mailbosTitle": "MailBos — Mail Merkezi",
+    "mailbosHint": "HubConnect içinden e-posta göndermek için MailBos hesabını bağla.",
+    "mailbosKeyLabel": "MailBos API anahtarı",
+    "mailbosConnect": "Bağla",
+    "mailbosConnected": "Bağlandı — {{email}} olarak gönderiliyor",
+    "mailbosDisconnect": "Bağlantıyı kes",
+    "mailbosInvalidKey": "Geçersiz anahtar.",
+    "mailbosUnreachable": "MailBos'a ulaşılamadı. Daha sonra tekrar dene.",
+    "companyCode": "Çalışan şirket kodu",
+    "companyCodeHint": "Yeni çalışan için tek kullanımlık kayıt kodu oluştur.",
+    "optionalEmail": "Çalışan e-postası (isteğe bağlı)",
+    "createCode": "Kod oluştur",
+    "oneTimeCode": "Tek kullanımlık kod",
+    "copyCode": "Kopyala",
+    "deleteUser": "Hesabı sil",
+    "deleteUserConfirm": "Bu çalışan hesabı kalıcı olarak silinsin mi?"
   },
-  "calls": {
-    "title": "Görüşmeler",
-    "subtitle": "Ekip arkadaşlarını seç, görüntülü ya da sesli arama başlat — ücretsiz, üçüncü taraf servis yok.",
-    "video": "Görüntülü",
-    "audioOnly": "Sadece sesli",
-    "start": "Aramayı başlat",
-    "starting": "Başlatılıyor…",
-    "incomingCall": "Gelen arama…",
-    "accept": "Kabul et",
-    "decline": "Reddet",
-    "inCall": "Görüşmede",
-    "connecting": "Bağlanıyor…",
-    "participants": "Görüşmede {{count}} kişi",
-    "you": "Sen",
-    "mute": "Sessize al",
-    "unmute": "Sesi aç",
-    "cameraOff": "Kamerayı kapat",
-    "cameraOn": "Kamerayı aç",
-    "hangUp": "Kapat",
-    "mediaError": "Kamera/mikrofona erişilemedi. Tarayıcı izinlerini kontrol et."
-  }
+  "web": { "activePipeline": "Aktif pipeline'ım", "opportunities": "fırsat", "todayWorkspace": "Bugünkü çalışma alanın", "hello": "Merhaba, {{name}}", "personalSubtitle": "Pipeline, takipler ve yaklaşan etkinlikler tek yerde.", "reconnect": "Yeniden iletişime geç", "wonSales": "Kazanılan satışlar", "wonSalesHint": "Kapanan satışlar", "upcomingEvents": "Yaklaşan etkinlikler", "upcomingEventsHint": "Takvimdeki sıradaki etkinlikler", "leadFiles": "Lead dosyaları", "leadFilesHint": "Pipeline çalışma alanları", "forYou": "Sana özel", "viewAll": "Tümünü gör", "calendar": "Takvim", "noUpcomingEvents": "Yaklaşan etkinlik yok.", "locationPending": "Konum bekleniyor", "days": "gün", "workspace": "Retail Hub çalışma alanı", "crm": "Retail Hub CRM", "liveData": "Tek ekip, tek canlı veri kaynağı" },
+  "accreditation": { "title": "Canlı akreditasyon", "subtitle": "Etkinlik günü ortak check-in, badge ve geliş masası.", "event": "Etkinlik", "confirmed": "Onaylı", "arrived": "Geldi", "waiting": "Bekleniyor", "badgeIssues": "Badge sorunu", "search": "Ad, şirket veya e-posta ara…", "allBadges": "Tüm badge durumları", "syncing": "Canlı eşitleniyor…", "empty": "Bu etkinlikte onaylı misafir yok.", "markArrived": "Geldi olarak işaretle", "undo": "Gelişi geri al", "open": "Akreditasyonu aç", "export": "Excel çıkar" },
+  "badges": { "exists": "Badge var", "missing": "Badge eksik", "noBadge": "Badge yok" },
+  "participants": { "guest": "Misafir", "speaker": "Konuşmacı", "reservedSeat": "Rezerve koltuk", "staff": "Ekip" },
+  "eventStatus": { "planning": "Planlanıyor", "open": "Kayıt açık", "confirmed": "Onaylandı", "cancelled": "İptal", "completed": "Tamamlandı" },
+  "leadPipeline": { "probability": "İhtimal", "focus": "Odaklan", "push": "Zorla", "plan": "Planla", "allOwners": "Tüm sorumlular", "reconnect": "Yeniden iletişim tarihi", "nextStep": "Sonraki adım", "estimatedValue": "Tahmini değer" },
+  "leadPerformance": { "eyebrow": "T performansı", "title": "Lead ihtimal performansı", "subtitle": "T90, T70 ve T50 sonuçlarını tüm lead dosyalarında veya event bazında karşılaştır.", "eventFilter": "Event filtresi", "allEvents": "Tüm eventler · tüm leadler", "unlinked": "Evente bağlanmamış leadler", "files": "Lead dosyaları", "filesLower": "dosya", "allLeads": "Tüm leadler", "sales": "Satış", "failed": "Failed", "postponed": "Postponed", "open": "Açık", "probabilityGroup": "İhtimal grubu", "eventBreakdown": "Event bazlı dağılım", "thisFile": "Bu lead dosyası" },
+  "performance": { "title": "Performance", "subtitle": "Ortak Supabase verilerinden lead dönüşümü ve satış performansı.", "day": "Günlük", "week": "Haftalık", "month": "Aylık", "year": "Yıllık", "leadConversion": "Lead dönüşümü", "dealPerformance": "Satış performansı", "won": "Won", "lost": "Lost", "active": "Aktif", "postponed": "Postponed", "total": "Toplam", "noData": "Bu dönemde veri yok." },
+  "chat": { "title": "Chat", "subtitle": "HubConnect iOS ile canlı senkron şirket içi mesajlaşma.", "newChat": "Yeni sohbet", "newGroup": "Yeni grup", "groupName": "Grup adı", "groupNamePlaceholder": "Örn. Grocery Connect ekibi", "directMessage": "Özel mesaj", "searchPeople": "Çalışan ara…", "directHint": "Bir ekip arkadaşı seç ve hemen mesajlaşmaya başla.", "groupHint": "Gruba isim ver ve ilk üyelerini seç.", "selectPerson": "Bir kişi seç", "selectPeople": "Grup üyelerini seç", "selectedCount": "{{count}} kişi seçildi", "startChat": "Sohbeti başlat", "createGroup": "Grubu oluştur", "creating": "Oluşturuluyor…", "createFailed": "Sohbet oluşturulamadı. Tekrar dene.", "noPeople": "Eşleşen çalışan bulunamadı.", "messagePlaceholder": "Mesaj yaz…", "send": "Gönder", "photo": "Fotoğraf", "edited": "düzenlendi", "seenBy": "Kimler gördü", "delivered": "Ulaştı", "sent": "Gönderildi", "members": "Üyeler", "addMembers": "Kişi ekle", "remove": "Çıkar", "makeAdmin": "Yönetici yap", "leave": "Sohbetten ayrıl", "editGroup": "Grubu düzenle", "empty": "Henüz sohbet yok.", "noMessages": "Henüz mesaj yok. Sohbeti başlat.", "company": "Şirket", "position": "Ekip", "event": "Event", "custom": "Özel", "you": "Sen" },
+  "contactCenter": { "title": "Contact Center", "subtitle": "Aramalar, MailBos yazışmaları ve ortak ekip takvimi tek yerde.", "logCall": "Arama kaydet", "share": "Kişiyi paylaş", "chooseTeammate": "Ekip arkadaşı seç", "spoke": "Görüşüldü", "noAnswer": "Cevap yok", "callBack": "Tekrar ara", "sharedWith": "{{name}} ile paylaşıldı", "mailTitle": "Mail Center", "mailDescription": "MailBos ile kişiselleştirilmiş mail gönder; gelen kutusu, geçmiş, açılma ve yanıtları gör.", "callTitle": "Call Center", "callDescription": "Kişi veya şirket bul, aramayı başlat ve sonucunu ortak CRM'e kaydet.", "calendarTitle": "Ekip takvimi", "calendarDescription": "Toplantı planla ve seçtiğin ekip arkadaşlarının takvimlerini birlikte gör.", "open": "Aç", "backToCenter": "Contact Center", "mailbosConnected": "MailBos bağlı · {{email}}", "mailbosDisconnected": "MailBos bağlı değil", "callsToday": "Bugünkü aramalarım", "meetingsToday": "Bugünkü toplantılarım", "totalContacts": "Ortak kişiler", "searchContacts": "Ad, şirket, e-posta veya telefon ara…", "noPhone": "Telefon numarası yok", "startCall": "Ara", "logResult": "Sonuç kaydet", "recentCalls": "Son aramalar", "noCalls": "Henüz arama kaydı yok.", "callOutcome": "Görüşme sonucu", "interactionType": "Görüşme tipi", "result": "Sonuç", "relatedRecord": "İlgili event veya lead", "generalCall": "Genel görüşme — bağlantılı kayıt yok", "eventRecord": "Event", "leadRecord": "Lead", "pending": "Bekliyor", "outcomes": { "answered": "Görüşüldü", "no_answer": "Telefonu açmadı" }, "newMeeting": "Yeni toplantı", "showCalendars": "Takvimleri göster", "me": "Ben", "noMeetings": "Seçili takvimlerde toplantı yok.", "meetingTitle": "Toplantı başlığı", "contactOptional": "Kişi (isteğe bağlı)", "startsAt": "Başlangıç", "endsAt": "Bitiş", "meetingLink": "Toplantı linki", "busy": "Meşgul", "join": "Katıl" },
+  "calls": { "title": "Görüşmeler", "subtitle": "Ekip arkadaşlarını seç, görüntülü ya da sesli arama başlat — ücretsiz, üçüncü taraf servis yok.", "video": "Görüntülü", "audioOnly": "Sadece sesli", "start": "Aramayı başlat", "starting": "Başlatılıyor…", "incomingCall": "Gelen arama…", "accept": "Kabul et", "decline": "Reddet", "inCall": "Görüşmede", "connecting": "Bağlanıyor…", "participants": "Görüşmede {{count}} kişi", "you": "Sen", "mute": "Sessize al", "unmute": "Sesi aç", "cameraOff": "Kamerayı kapat", "cameraOn": "Kamerayı aç", "hangUp": "Kapat", "mediaError": "Kamera/mikrofona erişilemedi. Tarayıcı izinlerini kontrol et." }
 }

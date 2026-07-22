@@ -13,74 +13,81 @@ const STAGES = ["prospect", "in_progress", "won", "lost"];
 const STAGE_COLOR = { prospect: "gray", in_progress: "amber", won: "green", lost: "red" };
 const RSVP_COLOR = { yes: "green", no: "red", maybe: "amber" };
 
-export default function SalesView({ deals, owners, events, leadFiles, companies, contacts, groups }) {
+export default function SalesView({ deals, owners, events, leadFiles, companies, contacts, groups, loadError = null, canEdit = true }) {
   const { t } = useTranslation();
   const [q, setQ] = useState("");
   const [owner, setOwner] = useState("");
-  const [stage, setStage] = useState("");
   const [file, setFile] = useState("");
-  const [tab, setTab] = useState("people");
-  const [showPerson, setShowPerson] = useState(false);
-  const [showDealForm, setShowDealForm] = useState(false);
+  const [tab, setTab] = useState("won");
+  const [period, setPeriod] = useState("year");
+  const [referenceDate, setReferenceDate] = useState(() => new Date().toISOString().slice(0, 10));
+
+  const inPeriod = (value) => {
+    if (!value) return true;
+    const date = new Date(value);
+    const ref = new Date(`${referenceDate}T12:00:00`);
+    if (period === "day") return date.toDateString() === ref.toDateString();
+    if (period === "week") {
+      const start = new Date(ref); start.setDate(ref.getDate() - ((ref.getDay() + 6) % 7)); start.setHours(0, 0, 0, 0);
+      const end = new Date(start); end.setDate(start.getDate() + 7);
+      return date >= start && date < end;
+    }
+    if (period === "year") return date.getFullYear() === ref.getFullYear();
+    return date.getFullYear() === ref.getFullYear() && date.getMonth() === ref.getMonth();
+  };
 
   const filteredDeals = useMemo(() => {
     const term = q.trim().toLowerCase();
     return deals.filter((d) => {
       if (owner && d.owner_id !== owner) return false;
-      if (stage && d.stage !== stage) return false;
       if (file && d.lead_file_id !== file) return false;
+      if (!inPeriod(d.won_at || d.updated_at || d.created_at)) return false;
       if (!term) return true;
       const company = (d.company?.name || d.company_name || "").toLowerCase();
       const reps = (d.reps || []).map((r) => r.contact?.full_name || "").join(" ").toLowerCase();
       return company.includes(term) || reps.includes(term) || (d.lead_file?.name || "").toLowerCase().includes(term);
     });
-  }, [deals, q, owner, stage, file]);
-
-  const filteredPeople = useMemo(() => {
-    const term = q.trim().toLowerCase();
-    if (!term) return contacts;
-    return contacts.filter((c) => [c.full_name, c.email, c.job_title, c.company?.name].filter(Boolean).join(" ").toLowerCase().includes(term));
-  }, [contacts, q]);
+  }, [deals, q, owner, file, period, referenceDate]);
 
   const companyRows = useMemo(() => {
     const term = q.trim().toLowerCase();
-    return companies.filter((c) => !term || c.name?.toLowerCase().includes(term));
-  }, [companies, q]);
+    const ids = new Set(filteredDeals.map((d) => d.company?.id).filter(Boolean));
+    return companies.filter((c) => ids.has(c.id) && (!term || c.name?.toLowerCase().includes(term)));
+  }, [companies, filteredDeals, q]);
 
   return (
-    <div className="mx-auto max-w-6xl">
-      <PageHeader title={t("sales.wonTitle")} subtitle={t("sales.wonSubtitle")}>
+    <div className="mx-auto max-w-7xl">
+      <PageHeader title={t("sales.title")} subtitle={t("sales.wonSubtitle")}>
         <Button href="/leads">{t("sales.openLeads")}</Button>
-        <Button variant="secondary" href="/import?destination=sales_pipeline">{t("sales.importSalesLeads")}</Button>
+        <Button variant="secondary" href="/api/export/sales">Excel Export</Button>
+        {canEdit && <Button variant="secondary" href="/import?destination=sales_pipeline">Excel Import</Button>}
       </PageHeader>
 
-      <NewPersonModal open={showPerson} onClose={() => setShowPerson(false)} companies={companies} owners={owners} leadFiles={leadFiles} groups={groups} title="New person for Sales" />
+      {!canEdit && <Card className="mb-5 border-blue-400/25 bg-blue-400/[.06] p-4"><p className="text-sm font-semibold text-blue-200">Read-only Sales view</p><p className="mt-1 text-xs text-[var(--muted)]">Events users can review won sales and representatives, but only Sales can change the pipeline.</p></Card>}
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-4">
-        <button onClick={() => setTab("people")} className="text-left"><Card className={`p-4 ${tab === "people" ? "ring-2 ring-[var(--brand)]" : ""}`}><p className="text-xs text-[var(--muted)]">People</p><p className="mt-1 text-2xl font-semibold">{contacts.length}</p></Card></button>
-        <button onClick={() => setTab("companies")} className="text-left"><Card className={`p-4 ${tab === "companies" ? "ring-2 ring-[var(--brand)]" : ""}`}><p className="text-xs text-[var(--muted)]">Companies</p><p className="mt-1 text-2xl font-semibold">{companies.length}</p></Card></button>
-        <button onClick={() => setTab("deals")} className="text-left"><Card className={`p-4 ${tab === "deals" ? "ring-2 ring-[var(--brand)]" : ""}`}><p className="text-xs text-[var(--muted)]">Opportunities</p><p className="mt-1 text-2xl font-semibold">{deals.length}</p></Card></button>
-        <button onClick={() => setTab("deals")} className="text-left"><Card className="p-4"><p className="text-xs text-[var(--muted)]">Ready for event</p><p className="mt-1 text-2xl font-semibold">{deals.filter((d) => d.stage === "won" || d.pushed_event_id).length}</p></Card></button>
+      {loadError && <Card className="mb-5 border-red-500/30 p-4 text-sm text-red-300">Supabase data could not be loaded: {loadError}</Card>}
+
+      <Card className="mb-5 p-2"><div className="grid grid-cols-4 gap-1">{[["day",t("common.daily")],["week",t("common.weekly")],["month",t("common.monthly")],["year",t("common.yearly")]].map(([value,label]) => <button key={value} type="button" onClick={() => setPeriod(value)} className={"rounded-2xl px-3 py-2.5 text-sm font-medium transition " + (period === value ? "bg-[var(--brand)] text-[var(--brand-ink)]" : "text-[var(--muted)] hover:bg-white/5")}>{label}</button>)}</div></Card>
+
+      <div className="mb-5 grid gap-3 md:grid-cols-3">
+        <Field label={t("common.date")}><Input type="date" value={referenceDate} onChange={(e) => setReferenceDate(e.target.value)} /></Field>
+        <Field label={t("deals.owner")}><Select value={owner} onChange={(e) => setOwner(e.target.value)}><option value="">{t("common.all")} · {t("common.team")}</option>{owners.map((o) => <option key={o.id} value={o.id}>{o.full_name || o.email}</option>)}</Select></Field>
+        <Field label={t("sales.file")}><Select value={file} onChange={(e) => setFile(e.target.value)}><option value="">{t("sales.allFiles")}</option>{leadFiles.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</Select></Field>
       </div>
 
-      {false && showDealForm && <Card className="mb-4 p-5">
-        <h2 className="mb-1 text-sm font-semibold text-[var(--muted)]">Create sales opportunity</h2>
-        <p className="mb-3 text-xs text-[var(--muted)]">This is intentionally secondary. Import/add people first, then create an opportunity for companies that are actually being sold to.</p>
-        <AddDealForm companies={companies} leadFiles={leadFiles} groups={groups} owners={owners} />
-      </Card>}
+      <div className="mb-5 grid gap-3 sm:grid-cols-3">
+        <button onClick={() => setTab("won")} className="text-left"><Card className={`p-5 ${tab === "won" ? "border-[var(--brand)]" : ""}`}><p className="text-xs font-semibold uppercase tracking-[.14em] text-[var(--muted)]">Won</p><p className="mt-2 text-3xl font-semibold">{filteredDeals.length}</p><p className="mt-1 text-xs text-[var(--brand)]">{t("sales.wonTitle")}</p></Card></button>
+        <button onClick={() => setTab("companies")} className="text-left"><Card className={`p-5 ${tab === "companies" ? "border-[var(--brand)]" : ""}`}><p className="text-xs font-semibold uppercase tracking-[.14em] text-[var(--muted)]">{t("companies.title")}</p><p className="mt-2 text-3xl font-semibold">{new Set(filteredDeals.map((d) => d.company?.id || d.company_name)).size}</p><p className="mt-1 text-xs text-[var(--brand)]">{t("sales.wonTitle")}</p></Card></button>
+        <button onClick={() => setTab("people")} className="text-left"><Card className={`p-5 ${tab === "people" ? "border-[var(--brand)]" : ""}`}><p className="text-xs font-semibold uppercase tracking-[.14em] text-[var(--muted)]">{t("contacts.title")}</p><p className="mt-2 text-3xl font-semibold">{filteredDeals.reduce((n,d) => n + (d.reps?.length || 0), 0)}</p><p className="mt-1 text-xs text-[var(--brand)]">{t("deals.repsTitle")}</p></Card></button>
+      </div>
 
       <div className="mb-4 flex flex-wrap gap-3">
         <div className="min-w-48 flex-1"><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("common.search")} /></div>
-        {tab === "deals" && <>
-          <div className="w-44"><Select value={owner} onChange={(e) => setOwner(e.target.value)}><option value="">{t("contacts.allOwners")}</option>{owners.map((o) => <option key={o.id} value={o.id}>{o.full_name || o.email}</option>)}</Select></div>
-          <div className="w-40"><Select value={stage} onChange={(e) => setStage(e.target.value)}><option value="">{t("deals.allStages")}</option>{STAGES.map((s) => <option key={s} value={s}>{t(`deals.stages.${s}`)}</option>)}</Select></div>
-          <div className="w-48"><Select value={file} onChange={(e) => setFile(e.target.value)}><option value="">{t("sales.allFiles")}</option>{leadFiles.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</Select></div>
-        </>}
       </div>
 
-      {tab === "people" && <PeopleTable people={filteredPeople} />}
+      {tab === "people" && <PeopleTable people={Array.from(new Map(filteredDeals.flatMap((d) => (d.reps || []).map((r) => [r.contact?.id, { ...r.contact, company: d.company }])).filter(([id]) => id)).values())} />}
       {tab === "companies" && <CompanyGrid companies={companyRows} />}
-      {tab === "deals" && (filteredDeals.length === 0 ? <EmptyState>{q || owner || stage || file ? t("common.noResults") : t("sales.emptyDeals")}</EmptyState> : <div className="space-y-3">{filteredDeals.map((d, i) => <SalesDealCard key={d.id} deal={d} events={events} contacts={contacts} defaultOpen={i === 0 && (d.reps || []).length === 0} />)}</div>)}
+      {tab === "won" && (filteredDeals.length === 0 ? <EmptyState>{t("sales.emptyDeals")}</EmptyState> : <div className="space-y-3">{filteredDeals.map((d) => <SalesDealCard key={d.id} deal={d} events={events} contacts={contacts} canEdit={canEdit} />)}</div>)}
     </div>
   );
 }
@@ -155,7 +162,7 @@ function AddDealForm({ companies, leadFiles, groups, owners }) {
   );
 }
 
-function SalesDealCard({ deal, events, contacts, defaultOpen = false }) {
+function SalesDealCard({ deal, events, contacts, defaultOpen = false, canEdit = true }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(defaultOpen);
   const [stagePending, startStage] = useTransition();
@@ -190,14 +197,14 @@ function SalesDealCard({ deal, events, contacts, defaultOpen = false }) {
         <div className="border-t border-[var(--border)] bg-[var(--background)] p-4">
           <div className="mb-4 flex flex-wrap items-center gap-3">
             <span className="text-xs text-[var(--muted)]">{t("deals.stage")}:</span>
-            <select
+            {canEdit && !deal.synthetic && <select
               value={deal.stage}
               disabled={stagePending}
               onChange={(e) => startStage(() => setDealStage(deal.id, e.target.value, deal.lead_file_id))}
               className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-sm outline-none focus:border-[var(--brand)]"
             >
               {STAGES.map((s) => <option key={s} value={s}>{t(`deals.stages.${s}`)}</option>)}
-            </select>
+            </select>}
             {deal.lead_file && (
               <a href={`/leads/${deal.lead_file.id}`} className="ml-auto text-xs text-[var(--brand)] hover:underline">{t("deals.editInLeads")} →</a>
             )}
@@ -205,16 +212,21 @@ function SalesDealCard({ deal, events, contacts, defaultOpen = false }) {
 
           {/* Editable reps (sales can add reps / create contacts here) */}
           <p className="mb-2 text-sm font-semibold">{t("deals.repsTitle")}</p>
-          <RepsTable reps={reps} leadFileId={deal.lead_file_id} />
-          <AddRepForm dealId={deal.id} leadFileId={deal.lead_file_id} contacts={contacts} source="sales" />
+          {canEdit ? <RepsTable reps={reps} leadFileId={deal.lead_file_id} /> : <ReadOnlyReps reps={reps} />}
+          {canEdit && !deal.synthetic && <AddRepForm dealId={deal.id} leadFileId={deal.lead_file_id} contacts={contacts} source="sales" />}
 
           <div className="mt-4 border-t border-[var(--border)] pt-4">
-            <PushToEvent deal={deal} events={events} />
+            {canEdit && !deal.synthetic && <PushToEvent deal={deal} events={events} />}
           </div>
         </div>
       )}
     </Card>
   );
+}
+
+function ReadOnlyReps({ reps }) {
+  if (!reps.length) return <p className="text-xs text-[var(--muted)]">No representatives.</p>;
+  return <div className="divide-y divide-white/10 rounded-2xl border border-white/10">{reps.map((rep) => <div key={rep.id} className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm"><span><strong>{rep.contact?.full_name || "—"}</strong><span className="ml-2 text-xs text-[var(--muted)]">{rep.contact?.job_title || rep.contact?.email || ""}</span></span>{rep.rsvp && <Badge color={RSVP_COLOR[rep.rsvp] || "gray"}>{rep.rsvp}</Badge>}</div>)}</div>;
 }
 
 function PushToEvent({ deal, events }) {

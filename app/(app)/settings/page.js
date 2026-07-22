@@ -19,6 +19,7 @@ export default async function SettingsPage() {
       users={users}
       isAdmin={profile.role === "admin"}
       mailbosSenderEmail={profile.mailbos_sender_email || null}
+      mailbosConnected={!!profile.mailbos_api_key_enc}
     />
   );
 }

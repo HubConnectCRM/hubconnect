@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireProfile } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { encodeMailbosKey, pingMailbos } from "@/lib/mailbos";
 
 function clean(v) {
   const s = (v ?? "").toString().trim();
@@ -70,40 +71,84 @@ export async function toggleUserActive(userId, isActive) {
   revalidatePath("/settings");
 }
 
+export async function createCompanyInvite(prevState, formData) {
+  const { supabase, profile } = await requireProfile();
+  if (profile.role !== "admin") return { error: "forbidden" };
+  const email = clean(formData.get("email"));
+  const role = clean(formData.get("role")) || "sales";
+  const days = Math.max(1, Number(clean(formData.get("days")) || 14));
+  const { data, error } = await supabase.rpc("create_employee_invite", { p_email: email, p_role: role, p_days: days });
+  if (error) return { error: error.message };
+  return { ok: Date.now(), code: data, email, role, days };
+}
+
+export async function deleteTeamMember(userId) {
+  const { profile } = await requireProfile();
+  if (profile.role !== "admin" || profile.id === userId) return { error: "forbidden" };
+  const admin = createAdminClient();
+  if (!admin) return { error: "no_service_key" };
+  const { error } = await admin.auth.admin.deleteUser(userId);
+  if (error) return { error: error.message };
+  revalidatePath("/settings");
+  return { ok: true };
+}
+
 export async function connectMailbos(prevState, formData) {
   const { supabase, user } = await requireProfile();
   const key = clean(formData.get("api_key"));
-  if (!key || !key.startsWith("mbk_")) return { error: "invalid_key_format" };
+  if (!key) return { error: "invalid_key" };
 
   let senderEmail = "";
+  let provider = "gmail";
+  let keyId = null;
+  let label = "MailBos";
   try {
-    const res = await fetch("https://app.mailbos.app/api/ext/v1/ping", {
-      method: "POST",
-      headers: { "x-api-key": key, "Content-Type": "application/json" },
-    });
-    const data = await res.json();
-    if (!data.ok) return { error: "invalid_key" };
+    const data = await pingMailbos(key);
     senderEmail = data.sender?.email || "";
-  } catch {
-    return { error: "mailbos_unreachable" };
+    provider = data.sender?.provider || "gmail";
+    keyId = data.key_id || null;
+    label = data.label || "MailBos";
+  } catch (error) {
+    const message = error?.message || "mailbos_unreachable";
+    if (message.includes("401") || message.includes("403") || message.includes("invalid") || message.includes("unauthorized")) {
+      return { error: "invalid_key" };
+    }
+    return { error: message };
   }
 
-  const keyEnc = Buffer.from(key).toString("base64");
-  await supabase
+  const keyEnc = encodeMailbosKey(key);
+  const { error } = await supabase
     .from("profiles")
-    .update({ mailbos_api_key_enc: keyEnc, mailbos_sender_email: senderEmail })
+    .update({
+      mailbos_api_key_enc: keyEnc,
+      mailbos_sender_email: senderEmail,
+      mailbos_provider: provider,
+      mailbos_key_id: keyId,
+      mailbos_label: label,
+    })
     .eq("id", user.id);
+  if (error) return { error: error.message };
 
   revalidatePath("/settings");
-  return { ok: true, senderEmail };
+  revalidatePath("/mail");
+  revalidatePath("/contact-center");
+  return { ok: true, senderEmail, provider, label };
 }
 
 export async function disconnectMailbos() {
   const { supabase, user } = await requireProfile();
   await supabase
     .from("profiles")
-    .update({ mailbos_api_key_enc: null, mailbos_sender_email: null })
+    .update({
+      mailbos_api_key_enc: null,
+      mailbos_sender_email: null,
+      mailbos_provider: null,
+      mailbos_key_id: null,
+      mailbos_label: null,
+    })
     .eq("id", user.id);
   revalidatePath("/settings");
+  revalidatePath("/mail");
+  revalidatePath("/contact-center");
   return { ok: true };
 }

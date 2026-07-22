@@ -1,6 +1,12 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { requireProfile } from "@/lib/auth";
+
+function clean(value) {
+  const result = (value ?? "").toString().trim();
+  return result || null;
+}
 
 export async function createCallRoom(participantIds, kind = "video") {
   const { supabase, user } = await requireProfile();
@@ -94,4 +100,67 @@ export async function getPendingCallInvites() {
     .order("created_at", { ascending: false })
     .limit(1);
   return data || [];
+}
+
+export async function saveCallOutcome(prevState, formData) {
+  const { supabase, user } = await requireProfile();
+  const contactId = clean(formData.get("contact_id"));
+  const outcome = clean(formData.get("outcome")) || "answered";
+  const interactionType = clean(formData.get("interaction_type")) || "Telefon";
+  const note = clean(formData.get("note")) || "";
+  const relation = clean(formData.get("relation"));
+
+  if (!contactId) return { error: "contact_required" };
+  if (!["answered", "no_answer"].includes(outcome)) return { error: "invalid_outcome" };
+
+  const { error: logError } = await supabase.from("call_logs").insert({
+    contact_id: contactId,
+    logged_by: user.id,
+    user_id: user.id,
+    interaction_type: interactionType,
+    outcome,
+    note,
+  });
+  if (logError) return { error: logError.message };
+
+  if (outcome === "answered" && relation?.startsWith("event:")) {
+    const registrationId = relation.slice("event:".length);
+    await supabase
+      .from("event_registrations")
+      .update({
+        rsvp: clean(formData.get("rsvp")) || "pending",
+        last_contacted_at: new Date().toISOString(),
+        last_contacted_note: `[${interactionType}] ${note}`.trim(),
+      })
+      .eq("id", registrationId);
+  }
+
+  if (outcome === "answered" && relation?.startsWith("lead:")) {
+    const leadContactId = relation.slice("lead:".length);
+    await supabase
+      .from("lead_contacts")
+      .update({
+        status: clean(formData.get("lead_status")) || "meeting",
+        probability: (clean(formData.get("probability")) || "t70").toLowerCase(),
+        reconnect_at: clean(formData.get("reconnect_at")),
+        next_step: clean(formData.get("next_step")),
+        notes: note,
+      })
+      .eq("id", leadContactId);
+  }
+
+  await supabase.from("interactions").insert({
+    contact_id: contactId,
+    user_id: user.id,
+    type: "call",
+    topic: interactionType,
+    action_text: outcome,
+    next_step: note || null,
+    occurred_on: new Date().toISOString().slice(0, 10),
+  });
+
+  revalidatePath("/calls");
+  revalidatePath("/contact-center");
+  revalidatePath(`/contacts/${contactId}`);
+  return { ok: Date.now() };
 }

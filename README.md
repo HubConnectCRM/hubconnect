@@ -17,7 +17,7 @@ List, …) with a single trilingual (EN / IT / TR) web app.
 ## Setup
 
 1. Create a free project at [supabase.com](https://supabase.com).
-2. In the Supabase **SQL editor**, paste and run [`supabase/schema.sql`](supabase/schema.sql).
+2. In the Supabase **SQL editor**, first run [`supabase/schema.sql`](supabase/schema.sql), then run the files in `supabase/migration_002_*.sql` through `supabase/migration_008_ios_web_parity.sql` in number order. Existing installations only need migrations they have not run yet; the iOS/Web parity work is in migration 008.
 3. Copy `.env.example` to `.env.local` and fill in your project URL + anon key
    (Supabase → Settings → API).
 4. Install and run:
@@ -35,14 +35,19 @@ Until step 3 is done the app shows a setup screen instead of crashing.
 ## Data model
 
 `companies` ← `contacts` → `interactions` (timeline). Contacts link to `events`
-through `event_registrations` (the desiderata / invite bridge). `deals` track the
-pipeline. Every change to these tables is written to `audit_log` (who, when, what).
+through `event_registrations` (the invitation and live-accreditation bridge).
+Lead files contain T90/T70/T50 follow-ups, can be approved and linked to events,
+and won opportunities flow into Sales. Event-day arrival and badge changes are
+synced live through Supabase Realtime. Every change is written to `audit_log`.
 
-## Build phases
+## Included workflows
 
-1. Foundation — auth, roles, trilingual shell, schema ✅
-2. Companies + contacts CRUD
-3. Interaction timeline + follow-ups
-4. Events + the sales↔event bridge
-5. Excel importer (migrate existing files)
-6. Audit log UI, permissions polish, pipeline
+- Internal login, password reset, company-code registration and admin account control
+- User-focused dashboard, notifications and follow-ups
+- Companies, contacts, call logging, sharing and MailBos mail centre
+- Lead files, T90/T70/T50 prioritisation, reconnect reminders and owner filters
+- Won-sales reporting by day/week/month/year and salesperson
+- Event planning, guest confirmation, speaker/reserved-seat/badge fields
+- Shared live accreditation desk for multiple event-day operators
+- Excel import plus Sales, Leads and Accreditation workbooks
+- English, Italian and Turkish interface

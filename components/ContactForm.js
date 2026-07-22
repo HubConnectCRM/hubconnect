@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { saveContact, lookupDuplicate } from "@/app/(app)/contacts/actions";
 import { Button, Card, Checkbox, Field, Input, Select, Textarea } from "@/components/ui";
 
-export default function ContactForm({ contact, companies, owners, currentUserId }) {
+export default function ContactForm({ contact, companies, owners, currentUserId, defaultCompanyName = "" }) {
   const { t } = useTranslation();
   const [state, action, pending] = useActionState(saveContact, {});
   const [gdpr, setGdpr] = useState(!!contact?.gdpr_consent);
@@ -47,7 +47,7 @@ export default function ContactForm({ contact, companies, owners, currentUserId 
             <Input
               name="company_name"
               list="company-options"
-              defaultValue={contact?.company?.name || ""}
+              defaultValue={contact?.company?.name || defaultCompanyName}
               autoComplete="off"
             />
             <datalist id="company-options">

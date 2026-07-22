@@ -9,6 +9,18 @@ function clean(v) {
   return s === "" ? null : s;
 }
 
+function canManageEvents(profile) {
+  return profile?.role === "admin" || profile?.role === "event";
+}
+
+function canManageSales(profile) {
+  return profile?.role === "admin" || profile?.role === "sales";
+}
+
+function eventAccessDenied() {
+  return { error: "events_read_only" };
+}
+
 // Find a company by normalized name, or create it. Returns its id (or null).
 async function resolveCompany(supabase, name, userId) {
   const name_clean = clean(name);
@@ -30,7 +42,8 @@ async function resolveCompany(supabase, name, userId) {
 }
 
 export async function saveEvent(prevState, formData) {
-  const { supabase, user } = await requireProfile();
+  const { supabase, user, profile } = await requireProfile();
+  if (!canManageEvents(profile)) return eventAccessDenied();
 
   const id = clean(formData.get("id"));
   const name = clean(formData.get("name"));
@@ -42,6 +55,9 @@ export async function saveEvent(prevState, formData) {
     start_date: clean(formData.get("start_date")),
     end_date: clean(formData.get("end_date")),
     description: clean(formData.get("description")),
+    venue_name: clean(formData.get("venue_name")),
+    status: clean(formData.get("status")) || "planning",
+    prospect_number: Math.max(1, Number(clean(formData.get("prospect_number")) || 100)),
   };
 
   let eventId = id;
@@ -64,14 +80,16 @@ export async function saveEvent(prevState, formData) {
 }
 
 export async function deleteEvent(id) {
-  const { supabase } = await requireProfile();
+  const { supabase, profile } = await requireProfile();
+  if (!canManageEvents(profile)) return eventAccessDenied();
   await supabase.from("events").delete().eq("id", id);
   revalidatePath("/events");
   redirect("/events");
 }
 
 export async function addRegistration(prevState, formData) {
-  const { supabase, user } = await requireProfile();
+  const { supabase, user, profile } = await requireProfile();
+  if (!canManageEvents(profile)) return eventAccessDenied();
   const eventId = clean(formData.get("event_id"));
   let contactId = clean(formData.get("contact_id"));
   if (!eventId) return { error: "missing" };
@@ -122,7 +140,8 @@ export async function addRegistration(prevState, formData) {
 }
 
 export async function moveRegistration(regId, newEventId) {
-  const { supabase } = await requireProfile();
+  const { supabase, profile } = await requireProfile();
+  if (!canManageEvents(profile)) return eventAccessDenied();
   await supabase
     .from("event_registrations")
     .update({ event_id: newEventId, group_id: null })
@@ -131,7 +150,8 @@ export async function moveRegistration(regId, newEventId) {
 }
 
 export async function addEventGroup(prevState, formData) {
-  const { supabase, user } = await requireProfile();
+  const { supabase, user, profile } = await requireProfile();
+  if (!canManageEvents(profile)) return eventAccessDenied();
   const eventId = clean(formData.get("event_id"));
   const name = clean(formData.get("name"));
   if (!eventId || !name) return { error: "missing" };
@@ -146,7 +166,10 @@ export async function addEventGroup(prevState, formData) {
 }
 
 export async function deleteGroup(id, eventId) {
-  const { supabase } = await requireProfile();
+  const { supabase, profile } = await requireProfile();
+  const { data: group } = await supabase.from("contact_groups").select("event_id, lead_file_id").eq("id", id).single();
+  if (group?.event_id && !canManageEvents(profile)) return eventAccessDenied();
+  if (group?.lead_file_id && !canManageSales(profile)) return { error: "sales_read_only" };
   await supabase.from("contact_groups").delete().eq("id", id);
   if (eventId) revalidatePath(`/events/${eventId}`);
   else revalidatePath("/leads");
@@ -154,7 +177,8 @@ export async function deleteGroup(id, eventId) {
 
 // Set attendance + optional note, and log the change to history (who/when/what).
 export async function confirmRsvp(prevState, formData) {
-  const { supabase, user } = await requireProfile();
+  const { supabase, user, profile } = await requireProfile();
+  if (!canManageEvents(profile)) return eventAccessDenied();
   const id = clean(formData.get("reg_id"));
   const eventId = clean(formData.get("event_id"));
   const rsvp = clean(formData.get("rsvp"));
@@ -186,8 +210,10 @@ export async function confirmRsvp(prevState, formData) {
 }
 
 export async function updateRegistrationStatus(id, status, eventId) {
-  const { supabase, user } = await requireProfile();
-  const rsvp = status === "confirmed" || status === "attended" ? "yes" : status === "declined" || status === "no_show" ? "no" : status === "waiting_list" ? "maybe" : null;
+  const { supabase, user, profile } = await requireProfile();
+  if (!canManageEvents(profile)) return eventAccessDenied();
+  if (!["desiderata", "invited", "registered", "waiting_list", "confirmed", "declined"].includes(status)) return { error: "invalid" };
+  const rsvp = status === "confirmed" ? "yes" : status === "declined" ? "no" : status === "waiting_list" ? "maybe" : null;
   const patch = { status, last_activity_at: new Date().toISOString() };
   if (rsvp) patch.rsvp = rsvp;
   const { error } = await supabase.from("event_registrations").update(patch).eq("id", id);
@@ -198,7 +224,42 @@ export async function updateRegistrationStatus(id, status, eventId) {
 }
 
 export async function removeRegistration(id, eventId) {
-  const { supabase } = await requireProfile();
+  const { supabase, profile } = await requireProfile();
+  if (!canManageEvents(profile)) return eventAccessDenied();
   await supabase.from("event_registrations").delete().eq("id", id);
   revalidatePath(`/events/${eventId}`);
+}
+
+export async function assignAccreditationStaff(prevState, formData) {
+  const { supabase, user, profile } = await requireProfile();
+  if (!canManageEvents(profile)) return eventAccessDenied();
+  const eventId = clean(formData.get("event_id"));
+  const userId = clean(formData.get("user_id"));
+  const accessStartsOn = clean(formData.get("access_starts_on"));
+  const accessEndsOn = clean(formData.get("access_ends_on"));
+  if (!eventId || !userId || !accessStartsOn || !accessEndsOn) return { error: "missing" };
+  if (accessEndsOn < accessStartsOn) return { error: "invalid_dates" };
+
+  const { error } = await supabase.from("event_accreditation_assignments").upsert({
+    event_id: eventId,
+    user_id: userId,
+    access_starts_on: accessStartsOn,
+    access_ends_on: accessEndsOn,
+    active: true,
+    assigned_by: user.id,
+  }, { onConflict: "event_id,user_id" });
+  if (error) return { error: error.message };
+  revalidatePath(`/events/${eventId}`);
+  revalidatePath("/accreditation");
+  return { ok: Date.now() };
+}
+
+export async function removeAccreditationAssignment(id, eventId) {
+  const { supabase, profile } = await requireProfile();
+  if (!canManageEvents(profile)) return eventAccessDenied();
+  const { error } = await supabase.from("event_accreditation_assignments").delete().eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath(`/events/${eventId}`);
+  revalidatePath("/accreditation");
+  return { ok: Date.now() };
 }

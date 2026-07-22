@@ -83,9 +83,9 @@ function isNo(v) {
 function normalizeRsvp(...values) {
   const s = norm(values.filter(Boolean).join(" "));
   if (!s) return null;
-  if (/\b(no|declined|non|rifiut|not coming|non viene|non partecipa)\b/.test(s)) return "no";
+  if (/\b(no|false|0|declined|non|rifiut|not coming|non viene|non partecipa)\b/.test(s)) return "no";
   if (/\b(maybe|forse|waiting|wait|tentative|lista attesa|da verificare)\b/.test(s)) return "maybe";
-  if (/\b(si|yes|confirmed|conferm|ok|registered|partecipa|viene)\b/.test(s)) return "yes";
+  if (/\b(si|yes|true|1|confirmed|conferm|ok|registered|partecipa|viene)\b/.test(s)) return "yes";
   return null;
 }
 
@@ -99,6 +99,21 @@ function registrationStatus(raw) {
   if (notes.includes("confirmed") || notes.includes("conferm")) return "confirmed";
   if (norm(raw._sheet).includes("iscritt") || norm(raw.source).includes("iscritt")) return "registered";
   return "registered";
+}
+
+function participantType(raw) {
+  const text = norm([raw.notes, raw.topic, raw.last_action, raw._sheet].filter(Boolean).join(" "));
+  if (/\b(speaker|relatore|relatrice)\b/.test(text)) return "speaker";
+  if (/\b(riservat|reserved|posto riservato)\b/.test(text)) return "reserved_seat";
+  if (/\b(staff|team|crew)\b/.test(text)) return "staff";
+  return "guest";
+}
+
+function badgeStatus(raw) {
+  const text = norm([raw.notes, raw.topic, raw.last_action].filter(Boolean).join(" "));
+  if (/\b(no badge|senza badge|badge non necessario)\b/.test(text)) return "no_badge";
+  if (/\b(badge missing|missing badge|badge mancante|badge da fare)\b/.test(text)) return "missing";
+  return "exists";
 }
 
 function splitName(row) {
@@ -348,7 +363,10 @@ function buildNotes(raw) {
 }
 
 export async function importContacts(rows, options = {}) {
-  const { supabase, user } = await requireProfile();
+  const { supabase, user, profile } = await requireProfile();
+  const destination = options.destination || "contacts";
+  if (destination === "event" && profile.role !== "admin" && profile.role !== "event") return { ok: false, error: "events_read_only" };
+  if (["lead_file", "new_lead_file", "sales_pipeline"].includes(destination) && profile.role !== "admin" && profile.role !== "sales") return { ok: false, error: "sales_read_only" };
   if (!Array.isArray(rows) || rows.length === 0) return { ok: true, inserted: 0, skipped: 0, linked: 0, deals: 0, eventRegistrations: 0, enrichedCompanies: 0 };
 
   try {
@@ -468,6 +486,10 @@ export async function importContacts(rows, options = {}) {
           requested_by: ownerIdForIndex(ownerAssignments, index, user.id, options.ownerId),
           response_date: clean(raw.response_date) || clean(raw.last_contact),
           gdpr_consent: isYes(raw.gdpr_consent),
+          hub_consent: isYes(raw.hub_consent) || isYes(raw.gdpr_consent),
+          partner_consent: isYes(raw.partner_consent),
+          participant_type: participantType(raw),
+          badge_status: badgeStatus(raw),
           last_note: buildNotes(raw),
           last_activity_at: clean(raw.response_date) ? new Date().toISOString() : null,
           notes: [ownerTextForIndex(ownerAssignments, index) ? `Responsible from Excel: ${ownerTextForIndex(ownerAssignments, index)}` : null, clean(raw.notes), clean(raw.final_decision), clean(raw.rsvp)].filter(Boolean).join(" | ") || null,

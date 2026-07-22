@@ -12,11 +12,13 @@ import {
   addTeamMember,
   connectMailbos,
   disconnectMailbos,
+  createCompanyInvite,
+  deleteTeamMember,
 } from "@/app/(app)/settings/actions";
 
 const ROLES = ["admin", "sales", "event"];
 
-export default function SettingsView({ profile, users, isAdmin, mailbosSenderEmail }) {
+export default function SettingsView({ profile, users, isAdmin, mailbosSenderEmail, mailbosConnected }) {
   const { t, i18n } = useTranslation();
   const [state, action, pending] = useActionState(updateMyProfile, {});
 
@@ -57,11 +59,11 @@ export default function SettingsView({ profile, users, isAdmin, mailbosSenderEma
 
       <Card className="mb-6 p-6">
         <h2 className="mb-4 text-lg font-semibold">{t("settings.mailbosTitle")}</h2>
-        <MailbosConnect senderEmail={mailbosSenderEmail} />
+        <MailbosConnect senderEmail={mailbosSenderEmail} initiallyConnected={mailbosConnected} />
       </Card>
 
       {isAdmin && (
-        <Card className="overflow-hidden">
+        <><CompanyInvite /><Card className="overflow-hidden">
           <div className="p-5">
             <h2 className="text-lg font-semibold">{t("settings.users")}</h2>
             <p className="mt-1 text-sm text-[var(--muted)]">{t("settings.usersHint")}</p>
@@ -82,7 +84,7 @@ export default function SettingsView({ profile, users, isAdmin, mailbosSenderEma
               ))}
             </tbody>
           </table>
-        </Card>
+        </Card></>
       )}
     </div>
   );
@@ -127,17 +129,24 @@ function UserRow({ user, isSelf }) {
             {user.is_active ? t("common.yes") : t("common.no")}
           </Badge>
         </button>
+        {!isSelf && <button type="button" disabled={pending} onClick={() => { if (confirm(t("settings.deleteUserConfirm"))) startTransition(() => deleteTeamMember(user.id)); }} className="ml-3 text-xs text-red-500 hover:underline">{t("settings.deleteUser")}</button>}
       </td>
     </tr>
   );
 }
 
-function MailbosConnect({ senderEmail }) {
+function CompanyInvite() {
+  const { t } = useTranslation();
+  const [state, action, pending] = useActionState(createCompanyInvite, {});
+  return <Card className="mb-6 p-6"><h2 className="text-lg font-semibold">{t("settings.companyCode")}</h2><p className="mt-1 text-sm text-[var(--muted)]">{t("settings.companyCodeHint")}</p><form action={action} className="mt-4 grid gap-3 md:grid-cols-[1fr_11rem_8rem_auto]"><Input name="email" type="email" placeholder={t("settings.optionalEmail")} /><Select name="role" defaultValue="sales">{ROLES.filter((role) => role !== "admin").map((role) => <option key={role} value={role}>{t(`roles.${role}`)}</option>)}</Select><Input name="days" type="number" min="1" defaultValue="14" /><Button type="submit" disabled={pending}>{pending ? t("common.saving") : t("settings.createCode")}</Button></form>{state?.error && <p className="mt-3 text-sm text-red-500">{state.error}</p>}{state?.code && <div className="mt-4 rounded-2xl border border-[var(--brand)]/40 bg-[var(--brand)]/10 p-4"><p className="text-xs uppercase tracking-[.14em] text-[var(--muted)]">{t("settings.oneTimeCode")}</p><div className="mt-2 flex flex-wrap items-center gap-3"><code className="text-2xl font-bold text-[var(--brand)]">{state.code}</code><Button type="button" variant="secondary" onClick={() => navigator.clipboard.writeText(state.code)}>{t("settings.copyCode")}</Button></div></div>}</Card>;
+}
+
+function MailbosConnect({ senderEmail, initiallyConnected = false }) {
   const { t } = useTranslation();
   const [connectState, connectAction, connectPending] = useActionState(connectMailbos, {});
   const [disconnectPending, startDisconnect] = useTransition();
-  const connected = !!(connectState?.senderEmail || senderEmail);
-  const displayEmail = connectState?.senderEmail || senderEmail;
+  const connected = !!(connectState?.ok || initiallyConnected || senderEmail);
+  const displayEmail = connectState?.senderEmail || senderEmail || "MailBos";
 
   if (connected) {
     return (
@@ -162,7 +171,7 @@ function MailbosConnect({ senderEmail }) {
       <form action={connectAction} className="flex flex-wrap items-end gap-3 max-w-lg">
         <div className="flex-1 min-w-64">
           <Field label={t("settings.mailbosKeyLabel")}>
-            <Input name="api_key" type="password" placeholder="mbk_…" required />
+            <Input name="api_key" type="password" placeholder="MailBos API key" required />
           </Field>
         </div>
         <Button type="submit" disabled={connectPending}>
@@ -175,7 +184,7 @@ function MailbosConnect({ senderEmail }) {
       {connectState?.error === "invalid_key_format" && (
         <p className="mt-2 text-sm text-red-700">{t("settings.mailbosInvalidKey")}</p>
       )}
-      {connectState?.error === "mailbos_unreachable" && (
+      {connectState?.error && !["invalid_key", "invalid_key_format"].includes(connectState.error) && (
         <p className="mt-2 text-sm text-red-700">{t("settings.mailbosUnreachable")}</p>
       )}
     </div>

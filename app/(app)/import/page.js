@@ -15,5 +15,5 @@ export default async function ImportPage({ searchParams }) {
     supabase.from("profiles").select("id, full_name, email").order("full_name"),
   ]);
   const existingEmails = (emails || []).map((d) => d.email_normalized);
-  return <ImportWizard existingEmails={existingEmails} leadFiles={leadFiles || []} events={events || []} owners={owners || []} defaultLeadFileId={sp?.leadFileId || ""} defaultDestination={sp?.destination || ""} />;
+  return <ImportWizard existingEmails={existingEmails} leadFiles={leadFiles || []} events={events || []} owners={owners || []} defaultLeadFileId={sp?.leadFileId || ""} defaultDestination={sp?.destination || ""} defaultEventId={sp?.eventId || ""} />;
 }
