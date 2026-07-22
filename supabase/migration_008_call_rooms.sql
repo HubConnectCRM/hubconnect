@@ -2,6 +2,22 @@
 -- signaling; WebRTC mesh, STUN-only, no third-party video vendor). See the
 -- HubConnect iOS repo for the matching client-side protocol.
 
+-- Keep this one-time migration independently runnable. Later migrations also
+-- define the same helper with CREATE OR REPLACE, so repeated setup is safe.
+create or replace function public.is_active_user()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists(
+    select 1
+    from public.profiles
+    where id = auth.uid() and is_active = true
+  )
+$$;
+
 create table if not exists call_rooms (
   id         uuid primary key default gen_random_uuid(),
   created_by uuid references profiles(id) on delete set null,
@@ -13,7 +29,7 @@ create table if not exists call_rooms (
 alter table call_rooms enable row level security;
 drop policy if exists active_employee_only on call_rooms;
 create policy active_employee_only on call_rooms as restrictive for all to authenticated
-  using (is_active_user()) with check (is_active_user());
+  using (public.is_active_user()) with check (public.is_active_user());
 
 -- Authoritative "who's in the room since when" — joined_at (server clock) is
 -- the arbiter for the mesh negotiation's elder/offerer rule.
@@ -27,7 +43,7 @@ create table if not exists call_room_participants (
 alter table call_room_participants enable row level security;
 drop policy if exists active_employee_only on call_room_participants;
 create policy active_employee_only on call_room_participants as restrictive for all to authenticated
-  using (is_active_user()) with check (is_active_user());
+  using (public.is_active_user()) with check (public.is_active_user());
 
 -- One row per (room, invited callee) — audit trail of ring/accept/decline.
 create table if not exists call_invites (
@@ -43,4 +59,4 @@ create table if not exists call_invites (
 alter table call_invites enable row level security;
 drop policy if exists active_employee_only on call_invites;
 create policy active_employee_only on call_invites as restrictive for all to authenticated
-  using (is_active_user()) with check (is_active_user());
+  using (public.is_active_user()) with check (public.is_active_user());
