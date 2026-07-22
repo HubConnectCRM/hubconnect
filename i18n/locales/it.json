@@ -56,7 +56,8 @@
     "audit": "Registro modifiche",
     "settings": "Impostazioni",
     "mail": "Mail Center",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "calls": "Chiamate"
   },
   "sales": {
     "title": "Sales",
@@ -363,5 +364,26 @@
     "shareCredentials": "Account creato — condividi con {{email}}:",
     "tempPassword": "Password temporanea",
     "noServiceKey": "Service key mancante. Aggiungi SUPABASE_SERVICE_ROLE_KEY a .env.local."
+  },
+  "calls": {
+    "title": "Chiamate",
+    "subtitle": "Scegli i colleghi e avvia una chiamata video o audio — gratis, nessun servizio di terze parti.",
+    "video": "Video",
+    "audioOnly": "Solo audio",
+    "start": "Avvia chiamata",
+    "starting": "Avvio…",
+    "incomingCall": "Chiamata in arrivo…",
+    "accept": "Accetta",
+    "decline": "Rifiuta",
+    "inCall": "In chiamata",
+    "connecting": "Connessione…",
+    "participants": "{{count}} in chiamata",
+    "you": "Tu",
+    "mute": "Silenzia",
+    "unmute": "Riattiva audio",
+    "cameraOff": "Spegni videocamera",
+    "cameraOn": "Accendi videocamera",
+    "hangUp": "Riaggancia",
+    "mediaError": "Impossibile accedere a videocamera/microfono. Controlla i permessi del browser."
   }
 }

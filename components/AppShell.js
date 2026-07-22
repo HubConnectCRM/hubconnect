@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { NAV_ITEMS } from "@/lib/nav";
 import { Icon } from "@/components/icons";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import IncomingCallListener from "@/components/calls/IncomingCallListener";
 
 export default function AppShell({ profile, children }) {
   const { t } = useTranslation();
@@ -112,6 +113,7 @@ export default function AppShell({ profile, children }) {
           <main className="flex-1 overflow-auto p-6">{children}</main>
         </div>
       </div>
+      <IncomingCallListener profile={profile} />
     </div>
   );
 }

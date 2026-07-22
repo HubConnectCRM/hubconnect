@@ -56,7 +56,8 @@
     "audit": "Denetim kaydı",
     "settings": "Ayarlar",
     "mail": "Mail Center",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "calls": "Görüşmeler"
   },
   "sales": {
     "title": "Sales",
@@ -363,5 +364,26 @@
     "shareCredentials": "Hesap oluşturuldu — {{email}} ile paylaş:",
     "tempPassword": "Geçici parola",
     "noServiceKey": "Service key yok. .env.local'e SUPABASE_SERVICE_ROLE_KEY ekle."
+  },
+  "calls": {
+    "title": "Görüşmeler",
+    "subtitle": "Ekip arkadaşlarını seç, görüntülü ya da sesli arama başlat — ücretsiz, üçüncü taraf servis yok.",
+    "video": "Görüntülü",
+    "audioOnly": "Sadece sesli",
+    "start": "Aramayı başlat",
+    "starting": "Başlatılıyor…",
+    "incomingCall": "Gelen arama…",
+    "accept": "Kabul et",
+    "decline": "Reddet",
+    "inCall": "Görüşmede",
+    "connecting": "Bağlanıyor…",
+    "participants": "Görüşmede {{count}} kişi",
+    "you": "Sen",
+    "mute": "Sessize al",
+    "unmute": "Sesi aç",
+    "cameraOff": "Kamerayı kapat",
+    "cameraOn": "Kamerayı aç",
+    "hangUp": "Kapat",
+    "mediaError": "Kamera/mikrofona erişilemedi. Tarayıcı izinlerini kontrol et."
   }
 }

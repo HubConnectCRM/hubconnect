@@ -56,7 +56,8 @@
     "audit": "Audit log",
     "settings": "Settings",
     "mail": "Mail Center",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "calls": "Calls"
   },
   "sales": {
     "title": "Sales",
@@ -394,5 +395,26 @@
     "replied": "Replied",
     "opened": "Opened",
     "sent_badge": "Sent"
+  },
+  "calls": {
+    "title": "Calls",
+    "subtitle": "Pick teammates and start a video or audio call — free, no third-party service.",
+    "video": "Video",
+    "audioOnly": "Audio only",
+    "start": "Start call",
+    "starting": "Starting…",
+    "incomingCall": "Incoming call…",
+    "accept": "Accept",
+    "decline": "Decline",
+    "inCall": "In call",
+    "connecting": "Connecting…",
+    "participants": "{{count}} in call",
+    "you": "You",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "cameraOff": "Turn off camera",
+    "cameraOn": "Turn on camera",
+    "hangUp": "Hang up",
+    "mediaError": "Couldn't access your camera/microphone. Check your browser permissions."
   }
 }
