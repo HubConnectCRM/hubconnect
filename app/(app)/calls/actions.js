@@ -2,8 +2,26 @@
 
 import { requireProfile } from "@/lib/auth";
 
+// Server Actions can't import lib/calls/signaling.js (a "use client" module
+// built around the browser Supabase client) — this is the same broadcast,
+// just sent from the server client requireProfile() already gives us. Must
+// match the payload shape the iOS app's ring listener expects exactly
+// (type/room_id/from_id/from_name/kind), since this is the only thing that
+// tells a callee's already-open app "someone is calling" in real time — the
+// call_invites row alone only gets picked up on next poll/foreground.
+async function sendRingSignal(supabase, calleeId, payload) {
+  const channel = supabase.channel(`ring:${calleeId}`, { config: { broadcast: { self: false } } });
+  await new Promise((resolve) => {
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") resolve();
+    });
+  });
+  await channel.send({ type: "broadcast", event: "signal", payload });
+  await supabase.removeChannel(channel);
+}
+
 export async function createCallRoom(participantIds, kind = "video") {
-  const { supabase, user } = await requireProfile();
+  const { supabase, user, profile } = await requireProfile();
 
   const { data: room, error } = await supabase
     .from("call_rooms")
@@ -14,10 +32,19 @@ export async function createCallRoom(participantIds, kind = "video") {
 
   await supabase.from("call_room_participants").insert({ room_id: room.id, user_id: user.id });
 
-  const invites = participantIds
-    .filter((id) => id !== user.id)
-    .map((calleeId) => ({ room_id: room.id, caller_id: user.id, callee_id: calleeId }));
+  const calleeIds = participantIds.filter((id) => id !== user.id);
+  const invites = calleeIds.map((calleeId) => ({ room_id: room.id, caller_id: user.id, callee_id: calleeId }));
   if (invites.length) await supabase.from("call_invites").insert(invites);
+
+  for (const calleeId of calleeIds) {
+    await sendRingSignal(supabase, calleeId, {
+      type: "invite",
+      room_id: room.id,
+      from_id: user.id,
+      from_name: profile?.full_name || user.email,
+      kind,
+    });
+  }
 
   return room;
 }
