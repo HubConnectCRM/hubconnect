@@ -7,28 +7,43 @@ import { Badge, Button, Card, EmptyState, Field, Input, PageHeader, Select } fro
 import NewPersonModal from "@/components/NewPersonModal";
 import Combobox from "@/components/Combobox";
 import DeleteButton from "@/components/DeleteButton";
-import { addLeadGroup, createOpportunityFromLeadContact, deleteLeadFile, renameGroup, updateLeadPerson } from "@/app/(app)/leads/actions";
+import { addLeadGroup, createOpportunityFromLeadContact, deleteLeadFile, linkLeadFileToEvent, renameGroup, setLeadPipelineStage, updateLeadPerson } from "@/app/(app)/leads/actions";
 import { deleteGroup } from "@/app/(app)/events/actions";
 import { deleteDeal, pushDealToEvent, saveDeal, setDealStage } from "@/app/(app)/deals/actions";
+import { leadRate, LEAD_PROBABILITIES } from "@/lib/leadMetrics";
 
 const STAGES = ["prospect", "in_progress", "won", "lost"];
 const STAGE_COLOR = { prospect: "gray", in_progress: "amber", won: "green", lost: "red" };
 const RSVP_COLOR = { yes: "green", no: "red", maybe: "amber" };
 
-export default function LeadFileDetail({ file, deals, leadContacts = [], groups, companies, contacts, events, owners }) {
+export default function LeadFileDetail({ file, deals, leadContacts = [], groups, companies, contacts, events, owners, performance, pipelineEvents = [], canEdit = true }) {
   const { t } = useTranslation();
   const [activeGroup, setActiveGroup] = useState("all");
   const [tab, setTab] = useState("people");
   const [showPerson, setShowPerson] = useState(false);
   const [showDealForm, setShowDealForm] = useState(false);
+  const [probability, setProbability] = useState("all");
+  const [ownerFilter, setOwnerFilter] = useState("");
 
   const filteredDeals = useMemo(() => (
-    activeGroup === "all" ? deals : activeGroup === "none" ? deals.filter((d) => !d.group_id) : deals.filter((d) => d.group_id === activeGroup)
-  ), [deals, activeGroup]);
+    deals.filter((d) => {
+      if (activeGroup === "none" && d.group_id) return false;
+      if (activeGroup !== "all" && activeGroup !== "none" && d.group_id !== activeGroup) return false;
+      if (ownerFilter && d.owner_id !== ownerFilter) return false;
+      if (probability !== "all" && !new RegExp(`\\b${probability}\\b`, "i").test(d.notes || "")) return false;
+      return true;
+    })
+  ), [deals, activeGroup, ownerFilter, probability]);
 
   const filteredPeople = useMemo(() => (
-    activeGroup === "all" ? leadContacts : activeGroup === "none" ? leadContacts.filter((r) => !r.group_id) : leadContacts.filter((r) => r.group_id === activeGroup)
-  ), [leadContacts, activeGroup]);
+    leadContacts.filter((row) => {
+      if (activeGroup === "none" && row.group_id) return false;
+      if (activeGroup !== "all" && activeGroup !== "none" && row.group_id !== activeGroup) return false;
+      if (ownerFilter && (row.owner_id || row.contact?.owner_id) !== ownerFilter) return false;
+      if (probability !== "all" && (row.probability || "T50").toUpperCase() !== probability) return false;
+      return true;
+    })
+  ), [leadContacts, activeGroup, ownerFilter, probability]);
 
   const companyMap = new Map();
   for (const lc of leadContacts) {
@@ -42,17 +57,23 @@ export default function LeadFileDetail({ file, deals, leadContacts = [], groups,
   const companyRows = Array.from(companyMap.values()).filter(Boolean);
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="mx-auto max-w-7xl">
       <div className="mb-4"><Button variant="ghost" href="/leads">← {t("common.back")}</Button></div>
 
       <PageHeader title={file.name} subtitle={file.description || "People, companies and sales opportunities inside this lead workspace."}>
-        <Button onClick={() => setShowPerson(true)}>+ Add Person</Button>
-        <Button variant="secondary" onClick={() => setShowDealForm((v) => !v)}>{showDealForm ? "Hide opportunity" : "+ Create opportunity"}</Button>
-        <Button variant="secondary" href={`/import?leadFileId=${file.id}&destination=lead_file`}>Import to this file</Button>
-        <DeleteButton action={deleteLeadFile} id={file.id} confirmText={t("leads.deleteConfirm")} />
+        <Button variant="secondary" href={`/api/export/leads?file=${file.id}`}>Excel Export</Button>
+        {canEdit && <Button onClick={() => setShowPerson(true)}>+ Add Person</Button>}
+        {canEdit && <Button variant="secondary" onClick={() => setShowDealForm((v) => !v)}>{showDealForm ? "Hide opportunity" : "+ Create opportunity"}</Button>}
+        {canEdit && <Button variant="secondary" href={`/import?leadFileId=${file.id}&destination=lead_file`}>Import to this file</Button>}
+        {canEdit && <DeleteButton action={deleteLeadFile} id={file.id} confirmText={t("leads.deleteConfirm")} />}
       </PageHeader>
 
-      <NewPersonModal open={showPerson} onClose={() => setShowPerson(false)} companies={companies} owners={owners} leadFiles={[file]} groups={groups.map((g) => ({ ...g, lead_file_id: file.id }))} defaultLeadFileId={file.id} title={`Add person to ${file.name}`} />
+      {!canEdit && <Card className="mb-4 border-blue-400/25 bg-blue-400/[.06] p-4"><p className="text-sm font-semibold text-blue-200">Read-only Sales workspace</p><p className="mt-1 text-xs text-[var(--muted)]">You can review every lead, company and won result. Editing remains with the Sales team.</p></Card>}
+
+      {canEdit && <NewPersonModal open={showPerson} onClose={() => setShowPerson(false)} companies={companies} owners={owners} leadFiles={[file]} groups={groups.map((g) => ({ ...g, lead_file_id: file.id }))} defaultLeadFileId={file.id} title={`Add person to ${file.name}`} />}
+
+      <LeadFileEventLink file={file} events={events} canEdit={canEdit} />
+      <LeadFilePerformance metrics={performance} />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-4">
         <button onClick={() => setTab("people")} className="text-left"><Card className={`p-4 ${tab === "people" ? "ring-2 ring-[var(--brand)]" : ""}`}><p className="text-xs text-[var(--muted)]">People</p><p className="mt-1 text-2xl font-semibold">{leadContacts.length}</p></Card></button>
@@ -61,27 +82,106 @@ export default function LeadFileDetail({ file, deals, leadContacts = [], groups,
         <button onClick={() => setTab("deals")} className="text-left"><Card className="p-4"><p className="text-xs text-[var(--muted)]">Won / pushed</p><p className="mt-1 text-2xl font-semibold">{deals.filter((d) => d.stage === "won" || d.pushed_event_id).length}</p></Card></button>
       </div>
 
-      {showDealForm && <Card className="mb-4 p-5">
+      {canEdit && showDealForm && <Card className="mb-4 p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--muted)]">Create sales opportunity</h2>
         <p className="mb-3 text-xs text-[var(--muted)]">Use this only when a company becomes a real sales opportunity. People can be added separately above.</p>
         <AddDealForm leadFileId={file.id} companies={companies} groups={groups} owners={owners} />
       </Card>}
 
-      <GroupManager leadFileId={file.id} groups={groups} activeGroup={activeGroup} onSelect={setActiveGroup} total={tab === "people" ? leadContacts.length : deals.length} />
+      {(tab === "people" || tab === "deals") && <Card className="mb-4 p-3"><div className="flex flex-wrap items-center gap-2"><span className="mr-1 text-xs font-semibold uppercase tracking-[.14em] text-[var(--muted)]">{t("leadPipeline.probability")}</span>{[["all",t("common.all")],["T90","T90 · "+t("leadPipeline.focus")],["T70","T70 · "+t("leadPipeline.push")],["T50","T50 · "+t("leadPipeline.plan")]].map(([value,label]) => <button key={value} type="button" onClick={() => setProbability(value)} className={"rounded-2xl px-3 py-2 text-sm " + (probability === value ? "bg-[var(--brand)] text-[var(--brand-ink)]" : "bg-white/[0.05] text-[var(--muted)]")}>{label}</button>)}<div className="ml-auto w-52"><Select value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)}><option value="">{t("leadPipeline.allOwners")}</option>{owners.map((o) => <option key={o.id} value={o.id}>{o.full_name || o.email}</option>)}</Select></div></div></Card>}
 
-      {tab === "people" && <PeopleTable rows={filteredPeople} leadFileId={file.id} groups={groups} owners={owners} companies={companies} />}
+      <GroupManager leadFileId={file.id} groups={groups} activeGroup={activeGroup} onSelect={setActiveGroup} total={tab === "people" ? leadContacts.length : deals.length} canEdit={canEdit} />
+
+      {tab === "people" && <PeopleTable rows={filteredPeople} leadFileId={file.id} groups={groups} owners={owners} companies={companies} pipelineEvents={pipelineEvents} canEdit={canEdit} />}
       {tab === "companies" && <CompanyGrid companies={companyRows} />}
       {tab === "deals" && (
         <>
           <h2 className="mb-3 text-lg font-semibold">Opportunities ({filteredDeals.length})</h2>
-          {filteredDeals.length === 0 ? <EmptyState>No opportunities yet. Add people first, then create an opportunity when sales is real.</EmptyState> : <div className="space-y-3">{filteredDeals.map((d, i) => <DealCard key={d.id} deal={d} leadFileId={file.id} groups={groups} contacts={contacts} events={events} defaultOpen={i === 0 && (d.reps || []).length === 0} />)}</div>}
+          {filteredDeals.length === 0 ? <EmptyState>No opportunities yet. Add people first, then create an opportunity when sales is real.</EmptyState> : <div className="space-y-3">{filteredDeals.map((d, i) => <DealCard key={d.id} deal={d} leadFileId={file.id} groups={groups} contacts={contacts} events={events} defaultOpen={i === 0 && (d.reps || []).length === 0} canEdit={canEdit} />)}</div>}
         </>
       )}
     </div>
   );
 }
 
-function PeopleTable({ rows, leadFileId, groups, owners, companies }) {
+function LeadFileEventLink({ file, events, canEdit }) {
+  const { t } = useTranslation();
+  const [state, action, pending] = useActionState(linkLeadFileToEvent, {});
+  if (!canEdit) {
+    const linked = events.find((event) => event.id === file.linked_event_id);
+    return <Card className="mb-4 p-4"><p className="text-xs font-semibold uppercase tracking-[.12em] text-[var(--muted)]">Linked event</p><p className="mt-2 font-medium">{linked?.name || "Not linked"}</p><Badge color={file.status === "approved" ? "green" : "gray"}>{file.status || "draft"}</Badge></Card>;
+  }
+  return (
+    <Card className="mb-4 p-4">
+      <form action={action} className="grid items-end gap-3 md:grid-cols-[1fr_12rem_auto]">
+        <input type="hidden" name="lead_file_id" value={file.id} />
+        <Field label={t("events.title")}>
+          <Select name="linked_event_id" defaultValue={file.linked_event_id || ""}>
+            <option value="">{t("common.none")}</option>
+            {events.map((event) => <option key={event.id} value={event.id}>{event.name}</option>)}
+          </Select>
+        </Field>
+        <Field label={t("common.status")}>
+          <Select name="status" defaultValue={file.status || "draft"}>
+            <option value="draft">Draft</option>
+            <option value="ready">Ready</option>
+            <option value="approved">Approved</option>
+          </Select>
+        </Field>
+        <Button type="submit" disabled={pending}>{pending ? t("common.saving") : t("common.save")}</Button>
+      </form>
+      {state?.ok && <p className="mt-2 text-xs text-green-500">{t("common.saved")}</p>}
+      {state?.error && <p className="mt-2 text-xs text-red-500">{state.error}</p>}
+    </Card>
+  );
+}
+
+function LeadFilePerformance({ metrics }) {
+  const { t } = useTranslation();
+  if (!metrics) return null;
+  const total = metrics.total || 0;
+  const outcomes = [
+    ["won", t("leadPerformance.sales"), "text-emerald-300"],
+    ["failed", t("leadPerformance.failed"), "text-red-300"],
+    ["postponed", t("leadPerformance.postponed"), "text-amber-300"],
+  ];
+
+  return (
+    <Card className="mb-4 overflow-hidden">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--border)] p-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[.14em] text-[var(--brand)]">{t("leadPerformance.thisFile")}</p>
+          <h2 className="mt-1 text-lg font-semibold">{t("leadPerformance.title")}</h2>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {outcomes.map(([key, label, color]) => (
+            <div key={key} className="rounded-xl bg-white/[.04] px-3 py-2 text-xs">
+              <span className="text-[var(--muted)]">{label}</span>{" "}
+              <strong className={color}>{metrics.outcomes[key]} · {total ? `%${leadRate(metrics.outcomes[key], total)}` : "—"}</strong>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="grid gap-3 p-4 md:grid-cols-3">
+        {LEAD_PROBABILITIES.map((probability) => {
+          const bucket = metrics.byProbability[probability];
+          return (
+            <div key={probability} className="rounded-2xl border border-[var(--border)] bg-[var(--background)] p-3">
+              <div className="flex items-center justify-between"><strong>{probability}</strong><span className="text-sm text-[var(--muted)]">{bucket.total}</span></div>
+              <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                {outcomes.map(([key, label, color]) => (
+                  <div key={key}><span className="block truncate text-[10px] text-[var(--muted)]">{label}</span><strong className={color}>{bucket[key]} · {bucket.total ? `%${leadRate(bucket[key], bucket.total)}` : "—"}</strong></div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+function PeopleTable({ rows, leadFileId, groups, owners, companies, pipelineEvents, canEdit }) {
   const { t } = useTranslation();
   const [editingId, setEditingId] = useState(null);
   if (!rows.length) return <EmptyState>No people in this lead file yet. Import an Excel file or click Add Person.</EmptyState>;
@@ -95,18 +195,21 @@ function PeopleTable({ rows, leadFileId, groups, owners, companies }) {
               <th className="px-4 py-3 font-medium">Company</th>
               <th className="px-4 py-3 font-medium">Role</th>
               <th className="px-4 py-3 font-medium">Email</th>
+              <th className="px-4 py-3 font-medium">{t("leadPipeline.probability")}</th>
+              <th className="px-4 py-3 font-medium">{t("leadPipeline.reconnect")}</th>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium text-right">Actions</th>
             </tr>
           </thead>
-          <tbody>{rows.map((r) => <LeadPersonRow key={r.id} row={r} leadFileId={leadFileId} groups={groups} owners={owners} companies={companies} editing={editingId === r.id} onEdit={() => setEditingId(r.id)} onClose={() => setEditingId(null)} />)}</tbody>
+          <tbody>{rows.map((r) => <LeadPersonRow key={r.id} row={r} leadFileId={leadFileId} groups={groups} owners={owners} companies={companies} pipelineEvents={pipelineEvents.filter((event) => event.lead_id === r.id)} editing={canEdit && editingId === r.id} onEdit={() => setEditingId(r.id)} onClose={() => setEditingId(null)} canEdit={canEdit} />)}</tbody>
         </table>
       </div>
     </Card>
   );
 }
 
-function LeadPersonRow({ row, leadFileId, groups, owners, companies, editing, onEdit, onClose }) {
+function LeadPersonRow({ row, leadFileId, groups, owners, companies, pipelineEvents, editing, onEdit, onClose, canEdit }) {
+  const { t } = useTranslation();
   const c = row.contact || {};
   const [editState, editAction, editPending] = useActionState(updateLeadPerson, {});
   const [oppState, oppAction, oppPending] = useActionState(createOpportunityFromLeadContact, {});
@@ -118,7 +221,10 @@ function LeadPersonRow({ row, leadFileId, groups, owners, companies, editing, on
   const companyOpts = companies.map((co) => ({ value: co.name, label: co.name }));
   const groupOpts = groups.map((g) => ({ value: g.id, label: g.name }));
   const ownerId = c.owner_id || "";
-  const statusColor = row.status === "won" ? "green" : row.status === "opportunity" ? "amber" : row.rsvp === "no" ? "red" : row.rsvp === "yes" ? "green" : "gray";
+  const probabilityValue = (row.probability || "T50").toUpperCase();
+  const [probabilityDraft, setProbabilityDraft] = useState(probabilityValue);
+  const statusColor = row.status === "won" ? "green" : ["lost", "failed"].includes(row.status) ? "red" : ["opportunity", "postponed"].includes(row.status) ? "amber" : row.rsvp === "no" ? "red" : row.rsvp === "yes" ? "green" : "gray";
+  const [pipelinePending, startPipelineTransition] = useTransition();
 
   return (
     <>
@@ -127,9 +233,11 @@ function LeadPersonRow({ row, leadFileId, groups, owners, companies, editing, on
         <td className="px-4 py-3 text-[var(--muted)]">{c.company?.name || "—"}</td>
         <td className="px-4 py-3 text-[var(--muted)]">{c.job_title || "—"}</td>
         <td className="px-4 py-3 text-[var(--muted)]">{c.email || "—"}</td>
+        <td className="px-4 py-3"><Badge color={probabilityValue === "T90" ? "green" : probabilityValue === "T70" ? "amber" : "blue"}>{probabilityValue}</Badge></td>
+        <td className="px-4 py-3 text-xs text-[var(--muted)]">{row.reconnect_at ? new Date(row.reconnect_at).toLocaleDateString() : "—"}</td>
         <td className="px-4 py-3"><Badge color={statusColor}>{row.status || row.rsvp || "lead"}</Badge></td>
         <td className="px-4 py-3 text-right">
-          <div className="flex flex-wrap justify-end gap-2">
+          {canEdit ? <div className="flex flex-wrap justify-end gap-2">
             <button type="button" onClick={onEdit} className="rounded-lg border border-[var(--border)] px-2 py-1 text-xs hover:border-[var(--brand)]">Edit</button>
             <form action={oppAction}>
               <input type="hidden" name="lead_file_id" value={leadFileId} />
@@ -151,14 +259,22 @@ function LeadPersonRow({ row, leadFileId, groups, owners, companies, editing, on
               <input type="hidden" name="stage" value="won" />
               <button type="submit" disabled={oppPending || !(c.company?.id || c.company?.name || companyName)} className="rounded-lg bg-green-600 px-2 py-1 text-xs font-medium text-white hover:bg-green-700">Mark won</button>
             </form>
-          </div>
+          </div> : <span className="text-xs text-[var(--muted)]">View only</span>}
           {oppState?.ok && <div className="mt-1 text-xs text-green-700">Sent to Sales ✓</div>}
           {oppState?.error && <div className="mt-1 text-xs text-red-700">{oppState.error}</div>}
         </td>
       </tr>
+      {((!editing && probabilityValue === "T90") || (editing && probabilityDraft === "T90")) && (
+        <tr className="border-b border-[var(--border)] bg-black/20">
+          <td colSpan={8} className="px-4 py-3"><LeadPipeline row={row} events={pipelineEvents} owners={owners} canEdit={canEdit} pending={pipelinePending} onStage={(stage) => startPipelineTransition(() => setLeadPipelineStage(row.id, stage, leadFileId))} /></td>
+        </tr>
+      )}
+      {!editing && probabilityValue === "T70" && canEdit && (
+        <tr className="border-b border-[var(--border)] bg-black/20"><td colSpan={8} className="px-4 py-3"><button type="button" onClick={() => { setProbabilityDraft("T90"); onEdit(); }} className="rounded-xl border border-[var(--brand)]/40 px-3 py-2 text-xs font-semibold text-[var(--brand)] hover:bg-[var(--brand)]/10">↑ T90'a Yükselt</button><span className="ml-2 text-xs text-[var(--muted)]">Kaydet ile tamamlanır</span></td></tr>
+      )}
       {editing && (
         <tr className="border-b border-[var(--border)] bg-[var(--background)]">
-          <td colSpan={6} className="px-4 py-4">
+          <td colSpan={8} className="px-4 py-4">
             <form action={editAction} className="grid grid-cols-1 gap-3 md:grid-cols-4">
               <input type="hidden" name="lead_file_id" value={leadFileId} />
               <input type="hidden" name="lead_contact_id" value={row.id} />
@@ -174,13 +290,17 @@ function LeadPersonRow({ row, leadFileId, groups, owners, companies, editing, on
               <Field label="LinkedIn"><Input name="linkedin" defaultValue={c.linkedin || ""} /></Field>
               <Field label="Owner"><Select name="owner_id" defaultValue={ownerId}><option value="">Keep / me</option>{owners.map((o) => <option key={o.id} value={o.id}>{o.full_name || o.email}</option>)}</Select></Field>
               <Field label="Group"><Combobox options={groupOpts} value={groupId} onChange={setGroupId} placeholder="No group" /></Field>
-              <Field label="Lead status"><Select name="status" defaultValue={row.status || "lead"}><option value="lead">Lead</option><option value="opportunity">Opportunity</option><option value="won">Won</option><option value="lost">Lost</option></Select></Field>
+              <Field label="Lead status"><Select name="status" defaultValue={row.status || "lead"}><option value="lead">Lead</option><option value="opportunity">Opportunity</option><option value="won">{t("leadPerformance.sales")}</option><option value="lost">{t("leadPerformance.failed")}</option><option value="postponed">{t("leadPerformance.postponed")}</option></Select></Field>
+              <Field label={t("leadPipeline.probability")}><Select name="probability" value={probabilityDraft} onChange={(event) => setProbabilityDraft(event.target.value)}><option value="T90">T90</option><option value="T70">T70</option><option value="T50">T50</option></Select></Field>
+              <Field label={t("leadPipeline.reconnect")}><Input name="reconnect_at" type="datetime-local" defaultValue={row.reconnect_at ? new Date(row.reconnect_at).toISOString().slice(0,16) : ""} /></Field>
+              <Field label={t("leadPipeline.nextStep")}><Input name="next_step" defaultValue={row.next_step || ""} /></Field>
+              <Field label={t("leadPipeline.estimatedValue")}><Input name="estimated_value" type="number" min="0" step="0.01" defaultValue={row.estimated_value || 0} /></Field>
               <Field label="RSVP"><Select name="rsvp" defaultValue={row.rsvp || ""}><option value="">Unknown</option><option value="yes">Yes</option><option value="maybe">Maybe</option><option value="no">No</option></Select></Field>
               <Field label="Source"><Input name="source" defaultValue={c.source || ""} /></Field>
               <Field label="Lead notes" className="md:col-span-2"><Input name="lead_notes" defaultValue={row.notes || ""} /></Field>
               <Field label="Contact notes" className="md:col-span-2"><Input name="contact_notes" defaultValue={c.notes || ""} /></Field>
               <div className="flex items-end justify-end gap-2 md:col-span-4">
-                <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+                <Button type="button" variant="secondary" onClick={() => { setProbabilityDraft(probabilityValue); onClose(); }}>Cancel</Button>
                 <Button type="submit" disabled={editPending}>{editPending ? "Saving…" : "Save changes"}</Button>
               </div>
               {editState?.error && <p className="text-sm text-red-700 md:col-span-4">{editState.error}</p>}
@@ -190,6 +310,20 @@ function LeadPersonRow({ row, leadFileId, groups, owners, companies, editing, on
       )}
     </>
   );
+}
+
+const PIPELINE_STAGE_COPY = {
+  tr: ["Başlamadı", "İlk Görüşme", "2. Görüşme", "Fiyat Onaylandı", "Contract Gönderildi", "Ödeme Alındı", "Confirmed"],
+  en: ["Not started", "First meeting", "Second meeting", "Price approved", "Contract sent", "Payment received", "Confirmed"],
+  it: ["Non iniziata", "Primo incontro", "Secondo incontro", "Prezzo approvato", "Contratto inviato", "Pagamento ricevuto", "Confermato"],
+};
+
+function LeadPipeline({ row, events, owners, canEdit, pending, onStage }) {
+  const { i18n } = useTranslation();
+  const stages = PIPELINE_STAGE_COPY[i18n.language?.slice(0, 2)] || PIPELINE_STAGE_COPY.en;
+  const stage = Number(row.pipeline_stage || 0);
+  const ownerMap = new Map(owners.map((owner) => [owner.id, owner.full_name || owner.email]));
+  return <div><div className="mb-2 flex flex-wrap items-center justify-between gap-2"><div><strong className="text-sm">T90 Sales Pipeline</strong><span className="ml-2 text-xs text-[var(--muted)]">%{Math.round((stage / 6) * 100)} · {stages[stage]}</span></div>{events.length > 0 && <details className="text-xs text-[var(--muted)]"><summary className="cursor-pointer text-[var(--brand)]">Timeline · {events.length}</summary><div className="absolute z-20 mt-2 max-h-56 w-72 overflow-auto rounded-2xl border border-[var(--border)] bg-[#171815] p-3 shadow-2xl">{events.map((event) => <p key={event.id} className="border-b border-white/10 py-2 last:border-0"><strong className="text-white">{stages[event.stage] || event.stage}</strong><br />{ownerMap.get(event.changed_by) || "—"} · {new Date(event.created_at).toLocaleString()}</p>)}</div></details>}</div><div className="grid grid-cols-6 gap-1">{stages.slice(1).map((label, index) => { const value = index + 1; const complete = value <= stage; return <button key={label} type="button" disabled={!canEdit || pending} onClick={() => onStage(value)} title={label} className={`h-2 rounded-full transition ${complete ? "bg-[var(--brand)]" : "bg-white/10"}`} />; })}</div><div className="mt-2 grid grid-cols-3 gap-1 text-[10px] text-[var(--muted)] md:grid-cols-6">{stages.slice(1).map((label) => <span key={label} className="truncate" title={label}>{label}</span>)}</div></div>;
 }
 
 function CompanyGrid({ companies }) {
@@ -249,7 +383,7 @@ function AddDealForm({ leadFileId, companies, groups, owners }) {
   );
 }
 
-function DealCard({ deal, leadFileId, groups, contacts, events, defaultOpen = false }) {
+function DealCard({ deal, leadFileId, groups, contacts, events, defaultOpen = false, canEdit = true }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(defaultOpen);
   const [pending, startTransition] = useTransition();
@@ -278,30 +412,35 @@ function DealCard({ deal, leadFileId, groups, contacts, events, defaultOpen = fa
           {/* Stage + delete */}
           <div className="mb-4 flex flex-wrap items-center gap-3">
             <span className="text-xs text-[var(--muted)]">{t("deals.stage")}:</span>
-            <StageSelect deal={deal} leadFileId={leadFileId} />
-            <button
+            {canEdit ? <StageSelect deal={deal} leadFileId={leadFileId} /> : <Badge color={STAGE_COLOR[deal.stage]}>{t(`deals.stages.${deal.stage}`)}</Badge>}
+            {canEdit && <button
               type="button"
               disabled={pending}
               onClick={() => { if (confirm(t("deals.deleteConfirm"))) startTransition(() => deleteDeal(deal.id, leadFileId)); }}
               className="ml-auto text-xs text-red-600 hover:underline"
             >
               {t("deals.delete")}
-            </button>
+            </button>}
           </div>
 
           {/* Representatives */}
           <p className="mb-2 text-sm font-semibold">{t("deals.repsTitle")}</p>
-          <RepsTable reps={reps} leadFileId={leadFileId} />
-          <AddRepForm dealId={deal.id} leadFileId={leadFileId} contacts={contacts} source="leads" />
+          {canEdit ? <RepsTable reps={reps} leadFileId={leadFileId} /> : <ReadOnlyReps reps={reps} />}
+          {canEdit && <AddRepForm dealId={deal.id} leadFileId={leadFileId} contacts={contacts} source="leads" />}
 
           {/* Push to event */}
           <div className="mt-4 border-t border-[var(--border)] pt-4">
-            <PushToEvent deal={deal} leadFileId={leadFileId} events={events} />
+            {canEdit && <PushToEvent deal={deal} leadFileId={leadFileId} events={events} />}
           </div>
         </div>
       )}
     </Card>
   );
+}
+
+function ReadOnlyReps({ reps }) {
+  if (!reps.length) return <p className="text-xs text-[var(--muted)]">No representatives.</p>;
+  return <div className="divide-y divide-white/10 rounded-2xl border border-white/10">{reps.map((rep) => <div key={rep.id} className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm"><span><strong>{rep.contact?.full_name || "—"}</strong><span className="ml-2 text-xs text-[var(--muted)]">{rep.contact?.job_title || rep.contact?.email || ""}</span></span>{rep.rsvp && <Badge color={RSVP_COLOR[rep.rsvp] || "gray"}>{rep.rsvp}</Badge>}</div>)}</div>;
 }
 
 function StageSelect({ deal, leadFileId }) {
@@ -365,7 +504,7 @@ function PushToEvent({ deal, leadFileId, events }) {
   );
 }
 
-function GroupManager({ leadFileId, groups, activeGroup, onSelect, total }) {
+function GroupManager({ leadFileId, groups, activeGroup, onSelect, total, canEdit = true }) {
   const { t } = useTranslation();
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -391,7 +530,7 @@ function GroupManager({ leadFileId, groups, activeGroup, onSelect, total }) {
         <button type="button" onClick={() => onSelect("all")} className={tabCls(activeGroup === "all")}>{t("common.all")} ({total})</button>
         {groups.map((g) => (
           <span key={g.id} className="flex items-center gap-1">
-            {editingId === g.id ? (
+            {canEdit && editingId === g.id ? (
               <span className="flex items-center gap-1">
                 <input autoFocus value={editName} onChange={(e) => setEditName(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") saveRename(g.id); if (e.key === "Escape") setEditingId(null); }}
@@ -402,16 +541,16 @@ function GroupManager({ leadFileId, groups, activeGroup, onSelect, total }) {
             ) : (
               <>
                 <button type="button" onClick={() => onSelect(g.id)} className={tabCls(activeGroup === g.id)}>{g.name}</button>
-                <button type="button" onClick={() => startEdit(g)} className="text-xs text-[var(--muted)] hover:text-[var(--brand)]" title={t("common.edit")}>✎</button>
-                <button type="button" disabled={delPending} onClick={() => startDel(() => deleteGroup(g.id, null))} className="text-xs text-[var(--muted)] hover:text-red-600">✕</button>
+                {canEdit && <button type="button" onClick={() => startEdit(g)} className="text-xs text-[var(--muted)] hover:text-[var(--brand)]" title={t("common.edit")}>✎</button>}
+                {canEdit && <button type="button" disabled={delPending} onClick={() => startDel(() => deleteGroup(g.id, null))} className="text-xs text-[var(--muted)] hover:text-red-600">✕</button>}
               </>
             )}
           </span>
         ))}
         <button type="button" onClick={() => onSelect("none")} className={tabCls(activeGroup === "none")}>{t("groups.none")}</button>
-        <button type="button" onClick={() => setShowAdd((v) => !v)} className="rounded-full border border-dashed border-[var(--border)] px-3 py-1 text-sm text-[var(--muted)] hover:border-[var(--brand)] hover:text-[var(--brand)]">+ {t("groups.add")}</button>
+        {canEdit && <button type="button" onClick={() => setShowAdd((v) => !v)} className="rounded-full border border-dashed border-[var(--border)] px-3 py-1 text-sm text-[var(--muted)] hover:border-[var(--brand)] hover:text-[var(--brand)]">+ {t("groups.add")}</button>}
       </div>
-      {showAdd && (
+      {canEdit && showAdd && (
         <form action={action} className="mt-3 flex items-center gap-2">
           <input type="hidden" name="lead_file_id" value={leadFileId} />
           <Input name="name" placeholder={t("groups.addPlaceholder")} className="max-w-xs" />

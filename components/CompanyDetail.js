@@ -23,6 +23,7 @@ export default function CompanyDetail({ company }) {
       </div>
 
       <PageHeader title={company.name} subtitle={company.sector || undefined}>
+        <Button href={`/contacts/new?companyId=${company.id}`}>+ {t("contacts.new")}</Button>
         <Button
           type="button"
           variant="secondary"
@@ -67,7 +68,7 @@ export default function CompanyDetail({ company }) {
         </Card>
 
         <Card className="p-5 md:col-span-3">
-          <h2 className="mb-3 text-lg font-semibold">{t("companies.contacts")}</h2>
+          <div className="mb-3 flex items-center justify-between"><div><p className="text-xs uppercase tracking-[.14em] text-[var(--brand)]">{t("companies.title")}</p><h2 className="mt-1 text-lg font-semibold">{t("companies.contacts")} ({contacts.length})</h2></div><Button variant="secondary" href={`/contacts/new?companyId=${company.id}`}>{t("contacts.new")}</Button></div>
           {contacts.length === 0 ? (
             <p className="text-sm text-[var(--muted)]">{t("contacts.empty")}</p>
           ) : (

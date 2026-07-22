@@ -8,6 +8,12 @@ function clean(v) {
   return s === "" ? null : s;
 }
 
+function canManageSales(profile) {
+  return profile?.role === "admin" || profile?.role === "sales";
+}
+
+const salesDenied = () => ({ error: "sales_read_only" });
+
 async function resolveCompany(supabase, name, userId) {
   const name_clean = clean(name);
   if (!name_clean) return null;
@@ -30,7 +36,8 @@ async function resolveCompany(supabase, name, userId) {
 // ---- Deals -------------------------------------------------------------
 
 export async function saveDeal(prevState, formData) {
-  const { supabase, user } = await requireProfile();
+  const { supabase, user, profile } = await requireProfile();
+  if (!canManageSales(profile)) return salesDenied();
   const id = clean(formData.get("id"));
   let leadFileId = clean(formData.get("lead_file_id"));
   const leadFileName = clean(formData.get("lead_file_name")); // create file inline
@@ -77,14 +84,16 @@ export async function saveDeal(prevState, formData) {
 }
 
 export async function setDealStage(dealId, stage, leadFileId) {
-  const { supabase } = await requireProfile();
+  const { supabase, profile } = await requireProfile();
+  if (!canManageSales(profile)) return salesDenied();
   await supabase.from("deals").update({ stage }).eq("id", dealId);
   if (leadFileId) revalidatePath(`/leads/${leadFileId}`);
   revalidatePath("/sales");
 }
 
 export async function deleteDeal(dealId, leadFileId) {
-  const { supabase } = await requireProfile();
+  const { supabase, profile } = await requireProfile();
+  if (!canManageSales(profile)) return salesDenied();
   await supabase.from("deals").delete().eq("id", dealId);
   if (leadFileId) revalidatePath(`/leads/${leadFileId}`);
   revalidatePath("/sales");
@@ -95,7 +104,8 @@ export async function deleteDeal(dealId, leadFileId) {
 // Add a rep: either an existing contact_id, or a new person (name/email/phone)
 // which becomes a real contact under the deal's company.
 export async function addRep(prevState, formData) {
-  const { supabase, user } = await requireProfile();
+  const { supabase, user, profile } = await requireProfile();
+  if (!canManageSales(profile)) return salesDenied();
   const dealId = clean(formData.get("deal_id"));
   const leadFileId = clean(formData.get("lead_file_id"));
   if (!dealId) return { error: "missing" };
@@ -159,34 +169,20 @@ export async function addRep(prevState, formData) {
 }
 
 export async function updateRep(repId, updates, leadFileId) {
-  const { supabase } = await requireProfile();
+  const { supabase, profile } = await requireProfile();
+  if (!canManageSales(profile)) return salesDenied();
   await supabase.from("deal_reps").update(updates).eq("id", repId);
 
-  // If this deal was already pushed, keep the event_registration's rsvp in sync
-  // only when the rsvp itself changed (event team owns the final value otherwise).
-  if (updates.rsvp !== undefined) {
-    const { data: rep } = await supabase
-      .from("deal_reps")
-      .select("contact_id, deal:deals(pushed_event_id)")
-      .eq("id", repId)
-      .single();
-    const eventId = rep?.deal?.pushed_event_id;
-    if (eventId && rep?.contact_id) {
-      await supabase
-        .from("event_registrations")
-        .update({ rsvp: updates.rsvp })
-        .eq("event_id", eventId)
-        .eq("contact_id", rep.contact_id)
-        .eq("registration_source", "sales");
-    }
-  }
+  // Sales RSVP remains a pipeline indication. Events owns the final event confirmation,
+  // so changing a representative here never overwrites event_registrations.rsvp.
 
   if (leadFileId) revalidatePath(`/leads/${leadFileId}`);
   revalidatePath("/sales");
 }
 
 export async function removeRep(repId, leadFileId) {
-  const { supabase } = await requireProfile();
+  const { supabase, profile } = await requireProfile();
+  if (!canManageSales(profile)) return salesDenied();
   await supabase.from("deal_reps").delete().eq("id", repId);
   if (leadFileId) revalidatePath(`/leads/${leadFileId}`);
   revalidatePath("/sales");
@@ -198,7 +194,8 @@ export async function removeRep(repId, leadFileId) {
 // new event name (created on the fly). Only reps with rsvp != 'no' are sent;
 // each becomes an event_registration (source = 'sales', linked to the deal).
 export async function pushDealToEvent(prevState, formData) {
-  const { supabase, user } = await requireProfile();
+  const { supabase, user, profile } = await requireProfile();
+  if (!canManageSales(profile)) return salesDenied();
   const dealId = clean(formData.get("deal_id"));
   const leadFileId = clean(formData.get("lead_file_id"));
   let eventId = clean(formData.get("event_id"));
@@ -224,7 +221,7 @@ export async function pushDealToEvent(prevState, formData) {
     .eq("id", dealId)
     .single();
 
-  // Find-or-create an event sub-group matching the deal's group name.
+  // Sales may link to an existing Event group, but cannot create or edit Event-owned groups.
   let eventGroupId = null;
   const groupName = deal?.group?.name;
   if (groupName) {
@@ -235,16 +232,7 @@ export async function pushDealToEvent(prevState, formData) {
       .eq("name", groupName)
       .limit(1)
       .maybeSingle();
-    if (existingGroup) {
-      eventGroupId = existingGroup.id;
-    } else {
-      const { data: g } = await supabase
-        .from("contact_groups")
-        .insert({ event_id: eventId, name: groupName, created_by: user.id })
-        .select("id")
-        .single();
-      eventGroupId = g?.id ?? null;
-    }
+    if (existingGroup) eventGroupId = existingGroup.id;
   }
 
   // Pull reps (skip the explicit 'no' ones).
@@ -264,21 +252,17 @@ export async function pushDealToEvent(prevState, formData) {
       .eq("contact_id", rep.contact_id)
       .limit(1)
       .maybeSingle();
-    if (exists) {
-      await supabase
-        .from("event_registrations")
-        .update({ rsvp: rep.rsvp, deal_id: dealId, group_id: eventGroupId })
-        .eq("id", exists.id);
-    } else {
+    if (!exists) {
       await supabase.from("event_registrations").insert({
         event_id: eventId,
         contact_id: rep.contact_id,
         registration_source: "sales",
-        status: "confirmed",
-        rsvp: rep.rsvp,
+        status: "registered",
+        rsvp: null,
         group_id: eventGroupId,
         deal_id: dealId,
         requested_by: deal?.owner_id ?? user.id,
+        notes: rep.rsvp ? `Sales indication: ${rep.rsvp}. Events team confirmation required.` : "Events team confirmation required.",
       });
     }
   }

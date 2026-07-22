@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { useTranslation } from "react-i18next";
 import { saveEvent } from "@/app/(app)/events/actions";
-import { Button, Card, Field, Input, Textarea } from "@/components/ui";
+import { Button, Card, Field, Input, Select, Textarea } from "@/components/ui";
 
 export default function EventForm({ event }) {
   const { t } = useTranslation();
@@ -29,6 +29,11 @@ export default function EventForm({ event }) {
         <Field label={t("events.location")}>
           <Input name="location" defaultValue={event?.location || ""} />
         </Field>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Field label={t("events.venue")}><Input name="venue_name" defaultValue={event?.venue_name || ""} /></Field>
+          <Field label={t("events.status")}><Select name="status" defaultValue={event?.status || "planning"}><option value="planning">{t("eventStatus.planning")}</option><option value="open">{t("eventStatus.open")}</option><option value="confirmed">{t("eventStatus.confirmed")}</option><option value="cancelled">{t("eventStatus.cancelled")}</option><option value="completed">{t("eventStatus.completed")}</option></Select></Field>
+          <Field label={t("events.prospectNumber")}><Input name="prospect_number" type="number" min="1" defaultValue={event?.prospect_number || 100} /></Field>
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <Field label={t("events.startDate")}>
             <Input name="start_date" type="date" defaultValue={event?.start_date || ""} />

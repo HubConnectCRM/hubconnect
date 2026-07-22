@@ -4,13 +4,13 @@ import Link from "next/link";
 
 export function Button({ variant = "primary", className = "", as, href, ...props }) {
   const variants = {
-    primary: "bg-[var(--brand)] text-white hover:opacity-90",
+    primary: "bg-[var(--brand)] text-[var(--brand-ink)] hover:brightness-95",
     secondary:
-      "border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] hover:bg-[var(--background)]",
+      "border border-[var(--border)] bg-[var(--surface-raised)] text-[var(--foreground)] hover:border-white/20 hover:bg-[#272922]",
     danger: "bg-red-600 text-white hover:bg-red-700",
-    ghost: "text-[var(--muted)] hover:bg-[var(--background)] hover:text-[var(--foreground)]",
+    ghost: "text-[var(--muted)] hover:bg-white/[0.06] hover:text-[var(--foreground)]",
   };
-  const cls = `inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-all disabled:opacity-50 ${variants[variant]} ${className}`;
+  const cls = `inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold transition-all disabled:opacity-50 ${variants[variant]} ${className}`;
   if (href) {
     return (
       <Link href={href} className={cls} {...props} />
@@ -33,7 +33,7 @@ export function Field({ label, hint, children, required, className = "" }) {
 }
 
 const inputCls =
-  "w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-2.5 text-sm outline-none transition focus:border-[var(--brand)] focus:ring-4 focus:ring-indigo-500/10";
+  "w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] px-3.5 py-2.5 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--brand)] focus:ring-4 focus:ring-[#d9fa84]/10";
 
 export function Input({ className = "", ...props }) {
   return <input className={`${inputCls} ${className}`} {...props} />;
@@ -67,7 +67,7 @@ export function Checkbox({ label, ...props }) {
 export function Card({ className = "", children }) {
   return (
     <div
-      className={`rounded-3xl border border-[var(--border)] bg-[var(--surface)] shadow-sm shadow-black/[0.03] ${className}`}
+      className={`rounded-3xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-black/20 ${className}`}
     >
       {children}
     </div>
@@ -76,7 +76,7 @@ export function Card({ className = "", children }) {
 
 export function PageHeader({ title, subtitle, children }) {
   return (
-    <div className="mb-6 flex flex-wrap items-start justify-between gap-4 rounded-3xl border border-[var(--border)] bg-white/70 p-5 shadow-sm backdrop-blur">
+    <div className="mb-6 flex flex-wrap items-start justify-between gap-4 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-black/20">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
         {subtitle && <p className="mt-1 text-[var(--muted)]">{subtitle}</p>}
@@ -87,14 +87,14 @@ export function PageHeader({ title, subtitle, children }) {
 }
 
 const badgeColors = {
-  gray: "bg-zinc-100 text-zinc-700",
-  brand: "bg-indigo-100 text-indigo-700",
-  green: "bg-green-100 text-green-700",
-  amber: "bg-amber-100 text-amber-800",
-  red: "bg-red-100 text-red-700",
-  blue: "bg-blue-100 text-blue-700",
-  pink: "bg-pink-100 text-pink-700",
-  purple: "bg-purple-100 text-purple-700",
+  gray: "bg-white/10 text-zinc-200",
+  brand: "bg-[#d9fa84]/15 text-[var(--brand)]",
+  green: "bg-emerald-400/15 text-emerald-300",
+  amber: "bg-amber-400/15 text-amber-300",
+  red: "bg-red-400/15 text-red-300",
+  blue: "bg-sky-400/15 text-sky-300",
+  pink: "bg-pink-400/15 text-pink-300",
+  purple: "bg-violet-400/15 text-violet-300",
 };
 
 export function Badge({ color = "gray", children }) {
@@ -124,7 +124,7 @@ export function Avatar({ name, size = 8 }) {
     .toUpperCase();
   return (
     <span
-      className="flex flex-none items-center justify-center rounded-full bg-[var(--brand)] font-semibold text-white"
+      className="flex flex-none items-center justify-center rounded-full bg-[var(--brand)] font-semibold text-[var(--brand-ink)]"
       style={{ width: `${size * 4}px`, height: `${size * 4}px`, fontSize: `${size * 1.4}px` }}
     >
       {initials}

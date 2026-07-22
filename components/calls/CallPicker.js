@@ -46,7 +46,9 @@ export default function CallPicker({ profile, teammates }) {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader title={t("calls.title")} subtitle={t("calls.subtitle")} />
+      <PageHeader title={t("calls.title")} subtitle={t("calls.subtitle")}>
+        <Button href="/calls/notes" variant="secondary">{t("calls.viewNotes")}</Button>
+      </PageHeader>
       <Card className="p-5">
         <div className="mb-4 flex gap-2">
           <Button variant={kind === "video" ? "primary" : "secondary"} onClick={() => setKind("video")}>

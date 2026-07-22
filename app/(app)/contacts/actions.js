@@ -81,6 +81,29 @@ export async function saveContact(prevState, formData) {
   redirect(`/contacts/${contactId}`);
 }
 
+export async function shareContact(prevState, formData) {
+  const { supabase, user } = await requireProfile();
+  const contactId = clean(formData.get("contact_id"));
+  const sharedWith = clean(formData.get("shared_with"));
+  if (!contactId || !sharedWith) return { error: "missing" };
+  const { error } = await supabase.from("contact_shares").upsert({ contact_id: contactId, shared_by: user.id, shared_with: sharedWith, note: clean(formData.get("note")) }, { onConflict: "contact_id,shared_with" });
+  if (error) return { error: error.message };
+  revalidatePath(`/contacts/${contactId}`);
+  return { ok: Date.now() };
+}
+
+export async function logContactCall(prevState, formData) {
+  const { supabase, user } = await requireProfile();
+  const contactId = clean(formData.get("contact_id"));
+  if (!contactId) return { error: "missing" };
+  const row = { contact_id: contactId, user_id: user.id, logged_by: user.id, interaction_type: clean(formData.get("interaction_type")) || "Telefon", outcome: clean(formData.get("outcome")) || "answered", note: clean(formData.get("note")) };
+  const { error } = await supabase.from("call_logs").insert(row);
+  if (error) return { error: error.message };
+  await supabase.from("interactions").insert({ contact_id: contactId, user_id: user.id, type: "call", topic: row.interaction_type, action_text: row.outcome, next_step: row.note, occurred_on: new Date().toISOString().slice(0,10) });
+  revalidatePath(`/contacts/${contactId}`);
+  return { ok: Date.now() };
+}
+
 
 // Reusable CRM person creation used by Sales, Lead Files, Deals and Contacts.
 // It can create/find a company, deduplicate by normalized email, then optionally
