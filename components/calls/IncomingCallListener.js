@@ -8,9 +8,12 @@ import { listenForRingSignals } from "@/lib/calls/signaling";
 import { declineCallInvite, getPendingCallInvites, joinCallRoom, timeoutCallInvite } from "@/app/(app)/calls/actions";
 import { Avatar, Button, Card } from "@/components/ui";
 
-// No ringtone asset — this synthesizes a classic two-tone ring pattern
-// entirely with the Web Audio API (on 1s / off 3s, repeating), so there's
-// nothing to fetch and no licensing to worry about.
+// No ringtone asset — this synthesizes an incoming-call chime with the Web
+// Audio API, so there's nothing to fetch and no licensing to worry about.
+// Deliberately NOT the classic 440/480Hz telephone ringback cadence — that
+// pattern is what a CALLER hears while dialing out, so using it here read as
+// "you are calling someone" instead of "someone is calling you". This is a
+// quick two-note ascending chime repeated in pairs instead.
 function startRingtone() {
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   if (!AudioContextClass) return () => {};
@@ -18,22 +21,28 @@ function startRingtone() {
   let stopped = false;
   let cycleTimer = null;
 
+  function chime(startTime) {
+    for (const [freq, offset] of [[880, 0], [1108, 0.15]]) {
+      const t = startTime + offset;
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.value = freq;
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.exponentialRampToValueAtTime(0.2, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+      oscillator.connect(gain).connect(ctx.destination);
+      oscillator.start(t);
+      oscillator.stop(t + 0.35);
+    }
+  }
+
   function ring() {
     if (stopped) return;
     const now = ctx.currentTime;
-    for (const freq of [440, 480]) {
-      const oscillator = ctx.createOscillator();
-      const gain = ctx.createGain();
-      oscillator.frequency.value = freq;
-      gain.gain.setValueAtTime(0.001, now);
-      gain.gain.exponentialRampToValueAtTime(0.18, now + 0.05);
-      gain.gain.setValueAtTime(0.18, now + 0.95);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 1);
-      oscillator.connect(gain).connect(ctx.destination);
-      oscillator.start(now);
-      oscillator.stop(now + 1);
-    }
-    cycleTimer = setTimeout(ring, 4_000);
+    chime(now);
+    chime(now + 0.5);
+    cycleTimer = setTimeout(ring, 2_400);
   }
 
   void ctx.resume().catch(() => {});
