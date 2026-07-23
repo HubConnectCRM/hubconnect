@@ -29,6 +29,10 @@ begin
 end;
 $function$;
 
+-- create or replace cannot change an existing function's return type
+-- (Postgres error 42P13) — must drop it first since this one is changing
+-- from user_role to app_role.
+drop function if exists public.current_user_role();
 create or replace function public.current_user_role()
 returns public.app_role
 language sql stable security definer set search_path = public as $$
