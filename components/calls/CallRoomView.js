@@ -258,14 +258,26 @@ export default function CallRoomView({ profile, roomId, kind }) {
       });
       engineRef.current = engine;
 
-      function maybeOfferAsElder(peerId, name, otherJoinedAt) {
+      // Which side offers used to be decided by comparing server-assigned
+      // "joined_at" timestamps — but confirmed via real device logs, that
+      // comparison isn't always consistent between the two clients (network
+      // round-trip timing, clock skew), and both sides occasionally decided
+      // they were the elder at once. A pure string comparison of the two
+      // participants' own user IDs is deterministic and instant — no
+      // network round trip, no clock involved — and by definition can never
+      // agree for both sides at once.
+      function isElder(otherId) {
+        return profile.id < otherId;
+      }
+
+      function maybeOfferAsElder(peerId, name) {
         if (peerId === profile.id) return;
         knownParticipantsRef.current.add(peerId);
         setRemoteStreams((prev) => ({
           ...prev,
           [peerId]: { stream: prev[peerId]?.stream || null, name: name || prev[peerId]?.name || "" },
         }));
-        if (new Date(joinedAtRef.current) < new Date(otherJoinedAt)) engine.offerTo(peerId);
+        if (isElder(peerId)) engine.offerTo(peerId);
       }
 
       const channel = supabase.channel(`call:${roomId}`, { config: { broadcast: { self: false } } });
@@ -275,7 +287,7 @@ export default function CallRoomView({ profile, roomId, kind }) {
         const senderId = payload.from_id;
         if (!senderId || senderId === profile.id) return;
         if (payload.type === "join-announce") {
-          maybeOfferAsElder(senderId, payload.from_name, payload.joined_at);
+          maybeOfferAsElder(senderId, payload.from_name);
           return;
         }
         if (payload.to_id && payload.to_id !== profile.id) return;
@@ -307,8 +319,7 @@ export default function CallRoomView({ profile, roomId, kind }) {
           }));
           maybeOfferAsElder(
             participantRow.user_id,
-            participantRow.profile?.full_name || participantRow.profile?.email || "",
-            participantRow.joined_at
+            participantRow.profile?.full_name || participantRow.profile?.email || ""
           );
         });
         const announce = () => {
@@ -336,12 +347,8 @@ export default function CallRoomView({ profile, roomId, kind }) {
               if (participantRow.user_id === profile.id || engine.isConnected(participantRow.user_id)) continue;
               maybeOfferAsElder(
                 participantRow.user_id,
-                participantRow.profile?.full_name || participantRow.profile?.email || "",
-                participantRow.joined_at
+                participantRow.profile?.full_name || participantRow.profile?.email || ""
               );
-              if (!engine.hasPeer(participantRow.user_id)) {
-                void engine.offerTo(participantRow.user_id).catch(() => {});
-              }
             }
           }, delay));
         }
