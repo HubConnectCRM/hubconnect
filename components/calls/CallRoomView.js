@@ -291,6 +291,12 @@ export default function CallRoomView({ profile, roomId, kind }) {
       channelRef.current = channel;
 
       channel.on("broadcast", { event: "signal" }, ({ payload }) => {
+        // Zero errors ever showing up in the console for a failed call (and
+        // zero visibility otherwise, since nothing here logged on the happy
+        // path either) left no way to tell "nothing ever arrived" apart from
+        // "arrived and something silently no-opped". This makes every signal
+        // this client receives on this call's channel visible, unconditionally.
+        console.log("[calls] signal received", payload.type, "from", payload.from_id);
         const senderId = payload.from_id;
         if (!senderId || senderId === profile.id) return;
         if (payload.type === "join-announce") {
@@ -318,6 +324,11 @@ export default function CallRoomView({ profile, roomId, kind }) {
       });
 
       channel.subscribe(async (subStatus) => {
+        // The other side may offer as soon as it sees our participant row in
+        // the database, well before this subscription finishes — logging the
+        // timestamp this actually reaches SUBSCRIBED shows whether that race
+        // is why an offer sent immediately after answering never arrives here.
+        console.log("[calls] channel subscribe status", subStatus, new Date().toISOString());
         if (subStatus !== "SUBSCRIBED" || cancelled) return;
         setStatus("ringing");
         const existing = await getCallRoomParticipants(roomId);
