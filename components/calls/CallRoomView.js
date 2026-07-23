@@ -291,9 +291,15 @@ export default function CallRoomView({ profile, roomId, kind }) {
           return;
         }
         if (payload.to_id && payload.to_id !== profile.id) return;
-        if (payload.type === "offer") void engine.handleOffer(senderId, payload.sdp).catch(() => {});
-        else if (payload.type === "answer") void engine.handleAnswer(senderId, payload.sdp).catch(() => {});
-        else if (payload.type === "ice-candidate") void engine.handleIceCandidate(senderId, payload.candidate).catch(() => {});
+        // These used to swallow every error silently — a thrown exception
+        // here (bad SDP, RTCPeerConnection in an unexpected state, etc.)
+        // meant the offer/answer/candidate was simply dropped with zero
+        // trace, and the other side just sat on "Connecting" forever with no
+        // way to tell why. Logging instead of swallowing costs nothing and
+        // is the only way to see what actually failed next time this happens.
+        if (payload.type === "offer") void engine.handleOffer(senderId, payload.sdp).catch((error) => console.error("[calls] handleOffer failed", error));
+        else if (payload.type === "answer") void engine.handleAnswer(senderId, payload.sdp).catch((error) => console.error("[calls] handleAnswer failed", error));
+        else if (payload.type === "ice-candidate") void engine.handleIceCandidate(senderId, payload.candidate).catch((error) => console.error("[calls] handleIceCandidate failed", error));
         else if (payload.type === "hangup") {
           engine.removePeer(senderId);
           knownParticipantsRef.current.delete(senderId);
