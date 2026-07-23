@@ -8,12 +8,64 @@ import { listenForRingSignals } from "@/lib/calls/signaling";
 import { declineCallInvite, getPendingCallInvites, joinCallRoom, timeoutCallInvite } from "@/app/(app)/calls/actions";
 import { Avatar, Button, Card } from "@/components/ui";
 
+// No ringtone asset — this synthesizes a classic two-tone ring pattern
+// entirely with the Web Audio API (on 1s / off 3s, repeating), so there's
+// nothing to fetch and no licensing to worry about.
+function startRingtone() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return () => {};
+  const ctx = new AudioContextClass();
+  let stopped = false;
+  let cycleTimer = null;
+
+  function ring() {
+    if (stopped) return;
+    const now = ctx.currentTime;
+    for (const freq of [440, 480]) {
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.frequency.value = freq;
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.exponentialRampToValueAtTime(0.18, now + 0.05);
+      gain.gain.setValueAtTime(0.18, now + 0.95);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 1);
+      oscillator.connect(gain).connect(ctx.destination);
+      oscillator.start(now);
+      oscillator.stop(now + 1);
+    }
+    cycleTimer = setTimeout(ring, 4_000);
+  }
+
+  void ctx.resume().catch(() => {});
+  ring();
+
+  return () => {
+    stopped = true;
+    if (cycleTimer) clearTimeout(cycleTimer);
+    void ctx.close().catch(() => {});
+  };
+}
+
 export default function IncomingCallListener({ profile }) {
   const { t } = useTranslation();
   const router = useRouter();
   const [invite, setInvite] = useState(null);
   const [secondsLeft, setSecondsLeft] = useState(30);
   const shownRoomsRef = useRef(new Set());
+  const stopRingtoneRef = useRef(null);
+
+  useEffect(() => {
+    if (invite) {
+      stopRingtoneRef.current = startRingtone();
+    } else {
+      stopRingtoneRef.current?.();
+      stopRingtoneRef.current = null;
+    }
+    return () => {
+      stopRingtoneRef.current?.();
+      stopRingtoneRef.current = null;
+    };
+  }, [invite]);
 
   useEffect(() => {
     const supabase = createClient();
