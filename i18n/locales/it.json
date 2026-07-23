@@ -95,7 +95,7 @@
   "roles": {
     "admin": "Admin",
     "sales": "Sales",
-    "event": "Eventi"
+    "events": "Eventi"
   },
   "login": {
     "title": "Accedi a HubConnect",

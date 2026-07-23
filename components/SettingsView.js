@@ -16,7 +16,10 @@ import {
   deleteTeamMember,
 } from "@/app/(app)/settings/actions";
 
-const ROLES = ["admin", "sales", "event"];
+// employee_invites.role and profiles.role were migrated out-of-band to the
+// 5-value app_role enum (admin/sales/events/accreditation/viewer) — "event"
+// (singular) is no longer a valid value there, only "events" is.
+const ROLES = ["admin", "sales", "events"];
 
 export default function SettingsView({ profile, users, isAdmin, mailbosSenderEmail, mailbosConnected }) {
   const { t, i18n } = useTranslation();

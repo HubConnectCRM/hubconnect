@@ -95,7 +95,7 @@
   "roles": {
     "admin": "Yönetici",
     "sales": "Sales",
-    "event": "Event"
+    "events": "Events"
   },
   "login": {
     "title": "HubConnect'e giriş yap",
