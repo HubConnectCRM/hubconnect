@@ -17,7 +17,7 @@ List, …) with a single trilingual (EN / IT / TR) web app.
 ## Setup
 
 1. Create a free project at [supabase.com](https://supabase.com).
-2. In the Supabase **SQL editor**, first run [`supabase/schema.sql`](supabase/schema.sql), then run the files in `supabase/migration_002_*.sql` through `supabase/migration_008_ios_web_parity.sql` in number order. Existing installations only need migrations they have not run yet; the iOS/Web parity work is in migration 008.
+2. In the Supabase **SQL editor**, first run [`supabase/schema.sql`](supabase/schema.sql), then run the numbered files in `supabase/` in order. Existing installations only need migrations they have not run yet; migration 015 records shared call notes and migration 016 completes cross-device iOS/Web calling.
 3. Copy `.env.example` to `.env.local` and fill in your project URL + anon key
    (Supabase → Settings → API).
 4. Install and run:
@@ -29,6 +29,35 @@ List, …) with a single trilingual (EN / IT / TR) web app.
 
 5. Open http://localhost:3000, create the first account, then in Supabase set
    that profile's `role` to `admin` (table editor → `profiles`).
+
+### Optional call-note summaries
+
+Call transcripts are always saved to Supabase first. To add a best-effort
+2–3 sentence Turkish summary, set `OPENAI_API_KEY` only in the server/Vercel
+environment. The default model is `gpt-5-nano`; override it with
+`OPENAI_CALL_SUMMARY_MODEL` if needed. If either the key or API is unavailable,
+the raw transcript remains available and the call flow continues normally.
+
+### iPhone ↔ web calls
+
+Foreground calls use the same Supabase Realtime topics and WebRTC wire format
+in Swift and the browser. The browser also polls the shared `call_invites`
+table, so a temporarily missed socket broadcast is recovered automatically.
+
+To ring an iPhone through CallKit while the iOS app is backgrounded or closed:
+
+1. Run `supabase/migration_016_cross_device_calls.sql` on the shared project.
+2. Deploy `supabase/functions/call-notify` with JWT verification disabled.
+3. Set the function secrets `CALL_NOTIFY_SECRET`, `APNS_BUNDLE_ID`,
+   `APNS_KEY_ID`, `APNS_TEAM_ID` and `APNS_AUTH_KEY`.
+4. Create a Supabase Database Webhook for `public.call_invites` / `INSERT` that
+   posts to the `call-notify` function and sends the same secret in the
+   `x-webhook-secret` header.
+5. Run `supabase/migration_017_call_delivery_reliability.sql` so each APNs
+   token records the bundle identifier that issued it.
+
+This webhook is shared by both clients: every invite inserted by either iOS or
+web follows one delivery path, preventing two incompatible call systems.
 
 Until step 3 is done the app shows a setup screen instead of crashing.
 

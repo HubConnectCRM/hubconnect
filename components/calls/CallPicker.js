@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { createClient } from "@/lib/supabase/client";
@@ -15,6 +15,11 @@ export default function CallPicker({ profile, teammates }) {
   const [kind, setKind] = useState("video");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
+  const [notificationPermission, setNotificationPermission] = useState("unsupported");
+
+  useEffect(() => {
+    if ("Notification" in window) setNotificationPermission(Notification.permission);
+  }, []);
 
   function toggle(id) {
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -44,9 +49,25 @@ export default function CallPicker({ profile, teammates }) {
     });
   }
 
+  async function enableCallNotifications() {
+    if (!("Notification" in window)) return;
+    const permission = await Notification.requestPermission();
+    setNotificationPermission(permission);
+  }
+
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader title={t("calls.title")} subtitle={t("calls.subtitle")} />
+      <PageHeader title={t("calls.title")} subtitle={t("calls.subtitle")}>
+        {notificationPermission === "default" && (
+          <Button variant="secondary" onClick={enableCallNotifications}>{t("calls.enableNotifications")}</Button>
+        )}
+        <Button href="/calls/notes" variant="secondary">{t("calls.viewNotes")}</Button>
+      </PageHeader>
+      {notificationPermission === "denied" && (
+        <p className="mb-3 rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+          {t("calls.notificationsBlocked")}
+        </p>
+      )}
       <Card className="p-5">
         <div className="mb-4 flex gap-2">
           <Button variant={kind === "video" ? "primary" : "secondary"} onClick={() => setKind("video")}>

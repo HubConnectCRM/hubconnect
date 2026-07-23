@@ -10,6 +10,9 @@ function clean(value) {
 
 export async function createCallRoom(participantIds, kind = "video") {
   const { supabase, user } = await requireProfile();
+  const uniqueParticipants = [...new Set((participantIds || []).filter((id) => id && id !== user.id))];
+  if (!uniqueParticipants.length) throw new Error("call_participant_required");
+  if (!["audio", "video"].includes(kind)) throw new Error("invalid_call_kind");
 
   const { data: room, error } = await supabase
     .from("call_rooms")
@@ -18,12 +21,21 @@ export async function createCallRoom(participantIds, kind = "video") {
     .single();
   if (error || !room) throw new Error(error?.message || "call_room_create_failed");
 
-  await supabase.from("call_room_participants").insert({ room_id: room.id, user_id: user.id });
+  const { error: participantError } = await supabase
+    .from("call_room_participants")
+    .insert({ room_id: room.id, user_id: user.id });
+  if (participantError) {
+    await supabase.from("call_rooms").delete().eq("id", room.id);
+    throw new Error(participantError.message || "call_participant_create_failed");
+  }
 
-  const invites = participantIds
-    .filter((id) => id !== user.id)
+  const invites = uniqueParticipants
     .map((calleeId) => ({ room_id: room.id, caller_id: user.id, callee_id: calleeId }));
-  if (invites.length) await supabase.from("call_invites").insert(invites);
+  const { error: inviteError } = await supabase.from("call_invites").insert(invites);
+  if (inviteError) {
+    await supabase.from("call_rooms").delete().eq("id", room.id);
+    throw new Error(inviteError.message || "call_invite_create_failed");
+  }
 
   return room;
 }
@@ -39,12 +51,14 @@ export async function joinCallRoom(roomId) {
 
   let row = inserted;
   if (error) {
-    const { data: existing } = await supabase
+    const { data: existing, error: existingError } = await supabase
       .from("call_room_participants")
-      .select()
+      .update({ left_at: null, joined_at: new Date().toISOString() })
       .eq("room_id", roomId)
       .eq("user_id", user.id)
+      .select()
       .single();
+    if (existingError) throw new Error(existingError.message || "call_join_failed");
     row = existing;
   }
 
@@ -53,6 +67,12 @@ export async function joinCallRoom(roomId) {
     .update({ status: "accepted", responded_at: new Date().toISOString() })
     .eq("room_id", roomId)
     .eq("callee_id", user.id);
+
+  await supabase
+    .from("call_rooms")
+    .update({ status: "active", ended_at: null })
+    .eq("id", roomId)
+    .neq("status", "ended");
 
   return row;
 }
@@ -74,6 +94,23 @@ export async function leaveCallRoom(roomId) {
     .update({ left_at: new Date().toISOString() })
     .eq("room_id", roomId)
     .eq("user_id", user.id);
+
+  const { count } = await supabase
+    .from("call_room_participants")
+    .select("user_id", { count: "exact", head: true })
+    .eq("room_id", roomId)
+    .is("left_at", null);
+  if ((count || 0) === 0) {
+    await supabase
+      .from("call_rooms")
+      .update({ status: "ended", ended_at: new Date().toISOString() })
+      .eq("id", roomId);
+    await supabase
+      .from("call_invites")
+      .update({ status: "cancelled", responded_at: new Date().toISOString() })
+      .eq("room_id", roomId)
+      .eq("status", "ringing");
+  }
   return { ok: true };
 }
 
@@ -100,6 +137,137 @@ export async function getPendingCallInvites() {
     .order("created_at", { ascending: false })
     .limit(1);
   return data || [];
+}
+
+export async function timeoutCallInvite(roomId) {
+  const { supabase, user } = await requireProfile();
+  await supabase
+    .from("call_invites")
+    .update({ status: "timed_out", responded_at: new Date().toISOString() })
+    .eq("room_id", roomId)
+    .eq("callee_id", user.id)
+    .eq("status", "ringing");
+  return { ok: true };
+}
+
+function normalizeTranscript(value) {
+  return (value ?? "").toString().replace(/\s+/g, " ").trim().slice(0, 100_000);
+}
+
+function responseText(payload) {
+  if (typeof payload?.output_text === "string") return payload.output_text.trim();
+  return (payload?.output || [])
+    .flatMap((item) => item?.content || [])
+    .map((item) => (item?.type === "output_text" ? item.text : ""))
+    .filter(Boolean)
+    .join("\n")
+    .trim();
+}
+
+async function generateCallSummary(transcript) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey || !transcript) return null;
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_CALL_SUMMARY_MODEL || "gpt-5-nano",
+        instructions:
+          "Bir iş görüşmesi transkriptini Türkçe olarak 2-3 kısa cümlede özetle. Yalnızca transkriptte bulunan gerçekleri, kararları ve sonraki adımları yaz; bilgi uydurma.",
+        input: transcript,
+        max_output_tokens: 180,
+      }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!response.ok) return null;
+    return responseText(await response.json()) || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveCallNote(roomId, rawNote) {
+  const { supabase, profile } = await requireProfile();
+  const note = normalizeTranscript(rawNote);
+  if (!roomId || !note) return { error: "note_required" };
+
+  const { data: membership, error: membershipError } = await supabase
+    .from("call_room_participants")
+    .select("user_id")
+    .eq("room_id", roomId)
+    .eq("user_id", profile.id)
+    .maybeSingle();
+  if (membershipError || !membership) return { error: "call_access_denied" };
+
+  const { data: participants } = await supabase
+    .from("call_room_participants")
+    .select("user_id, profile:profiles(full_name, email)")
+    .eq("room_id", roomId)
+    .neq("user_id", profile.id)
+    .order("joined_at", { ascending: true });
+
+  const withNames = [...new Set(
+    (participants || [])
+      .map((participant) => participant.profile?.full_name || participant.profile?.email)
+      .filter(Boolean)
+  )].join(", ");
+
+  const { data, error } = await supabase
+    .from("call_notes")
+    .insert({ room_id: roomId, user_id: profile.id, note, with_names: withNames })
+    .select("id, room_id, note, summary, with_names, created_at")
+    .single();
+  if (error || !data) return { error: error?.message || "call_note_save_failed" };
+
+  revalidatePath("/calls/notes");
+  return { ok: true, note: data };
+}
+
+export async function updateCallNote(noteId, rawNote) {
+  const { supabase, profile } = await requireProfile();
+  const note = normalizeTranscript(rawNote);
+  if (!noteId || !note) return { error: "note_required" };
+
+  const { data, error } = await supabase
+    .from("call_notes")
+    .update({ note, summary: null })
+    .eq("id", noteId)
+    .eq("user_id", profile.id)
+    .select("id, room_id, note, summary, with_names, created_at")
+    .maybeSingle();
+  if (error || !data) return { error: error?.message || "call_note_update_failed" };
+
+  revalidatePath("/calls/notes");
+  return { ok: true, note: data };
+}
+
+export async function summarizeCallNote(noteId) {
+  const { supabase, profile } = await requireProfile();
+  if (!process.env.OPENAI_API_KEY || !noteId) return { ok: true, skipped: true };
+
+  const { data: callNote } = await supabase
+    .from("call_notes")
+    .select("id, note")
+    .eq("id", noteId)
+    .eq("user_id", profile.id)
+    .maybeSingle();
+  if (!callNote?.note) return { ok: true, skipped: true };
+
+  const summary = await generateCallSummary(callNote.note);
+  if (!summary) return { ok: true, skipped: true };
+
+  const { error } = await supabase
+    .from("call_notes")
+    .update({ summary })
+    .eq("id", noteId)
+    .eq("user_id", profile.id);
+  if (!error) revalidatePath("/calls/notes");
+  return { ok: true, skipped: Boolean(error) };
 }
 
 export async function saveCallOutcome(prevState, formData) {
