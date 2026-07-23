@@ -8,26 +8,11 @@ function clean(value) {
   return result || null;
 }
 
-// Server Actions can't import lib/calls/signaling.js (a "use client" module
-// built around the browser Supabase client) — this is the same broadcast,
-// just sent from the server client requireProfile() already gives us. Must
-// match the payload shape the iOS app's ring listener expects exactly
-// (type/room_id/from_id/from_name/kind), since this is the only thing that
-// tells a callee's already-open app "someone is calling" in real time — the
-// call_invites row alone only gets picked up on next poll/foreground.
-async function sendRingSignal(supabase, calleeId, payload) {
-  const channel = supabase.channel(`ring:${calleeId}`, { config: { broadcast: { self: false } } });
-  await new Promise((resolve) => {
-    channel.subscribe((status) => {
-      if (status === "SUBSCRIBED") resolve();
-    });
-  });
-  await channel.send({ type: "broadcast", event: "signal", payload });
-  await supabase.removeChannel(channel);
-}
-
 export async function createCallRoom(participantIds, kind = "video") {
-  const { supabase, user, profile } = await requireProfile();
+  const { supabase, user } = await requireProfile();
+  const uniqueParticipants = [...new Set((participantIds || []).filter((id) => id && id !== user.id))];
+  if (!uniqueParticipants.length) throw new Error("call_participant_required");
+  if (!["audio", "video"].includes(kind)) throw new Error("invalid_call_kind");
 
   const { data: room, error } = await supabase
     .from("call_rooms")
@@ -36,11 +21,21 @@ export async function createCallRoom(participantIds, kind = "video") {
     .single();
   if (error || !room) throw new Error(error?.message || "call_room_create_failed");
 
-  await supabase.from("call_room_participants").insert({ room_id: room.id, user_id: user.id });
+  const { error: participantError } = await supabase
+    .from("call_room_participants")
+    .insert({ room_id: room.id, user_id: user.id });
+  if (participantError) {
+    await supabase.from("call_rooms").delete().eq("id", room.id);
+    throw new Error(participantError.message || "call_participant_create_failed");
+  }
 
-  const calleeIds = participantIds.filter((id) => id !== user.id);
-  const invites = calleeIds.map((calleeId) => ({ room_id: room.id, caller_id: user.id, callee_id: calleeId }));
-  if (invites.length) await supabase.from("call_invites").insert(invites);
+  const invites = uniqueParticipants
+    .map((calleeId) => ({ room_id: room.id, caller_id: user.id, callee_id: calleeId }));
+  const { error: inviteError } = await supabase.from("call_invites").insert(invites);
+  if (inviteError) {
+    await supabase.from("call_rooms").delete().eq("id", room.id);
+    throw new Error(inviteError.message || "call_invite_create_failed");
+  }
 
   for (const calleeId of calleeIds) {
     await sendRingSignal(supabase, calleeId, {
@@ -66,12 +61,14 @@ export async function joinCallRoom(roomId) {
 
   let row = inserted;
   if (error) {
-    const { data: existing } = await supabase
+    const { data: existing, error: existingError } = await supabase
       .from("call_room_participants")
-      .select()
+      .update({ left_at: null, joined_at: new Date().toISOString() })
       .eq("room_id", roomId)
       .eq("user_id", user.id)
+      .select()
       .single();
+    if (existingError) throw new Error(existingError.message || "call_join_failed");
     row = existing;
   }
 
@@ -80,6 +77,12 @@ export async function joinCallRoom(roomId) {
     .update({ status: "accepted", responded_at: new Date().toISOString() })
     .eq("room_id", roomId)
     .eq("callee_id", user.id);
+
+  await supabase
+    .from("call_rooms")
+    .update({ status: "active", ended_at: null })
+    .eq("id", roomId)
+    .neq("status", "ended");
 
   return row;
 }
@@ -101,6 +104,23 @@ export async function leaveCallRoom(roomId) {
     .update({ left_at: new Date().toISOString() })
     .eq("room_id", roomId)
     .eq("user_id", user.id);
+
+  const { count } = await supabase
+    .from("call_room_participants")
+    .select("user_id", { count: "exact", head: true })
+    .eq("room_id", roomId)
+    .is("left_at", null);
+  if ((count || 0) === 0) {
+    await supabase
+      .from("call_rooms")
+      .update({ status: "ended", ended_at: new Date().toISOString() })
+      .eq("id", roomId);
+    await supabase
+      .from("call_invites")
+      .update({ status: "cancelled", responded_at: new Date().toISOString() })
+      .eq("room_id", roomId)
+      .eq("status", "ringing");
+  }
   return { ok: true };
 }
 
@@ -127,6 +147,17 @@ export async function getPendingCallInvites() {
     .order("created_at", { ascending: false })
     .limit(1);
   return data || [];
+}
+
+export async function timeoutCallInvite(roomId) {
+  const { supabase, user } = await requireProfile();
+  await supabase
+    .from("call_invites")
+    .update({ status: "timed_out", responded_at: new Date().toISOString() })
+    .eq("room_id", roomId)
+    .eq("callee_id", user.id)
+    .eq("status", "ringing");
+  return { ok: true };
 }
 
 function normalizeTranscript(value) {

@@ -1,0 +1,3 @@
+[functions.call-notify]
+verify_jwt = false
+
