@@ -37,16 +37,9 @@ export async function createCallRoom(participantIds, kind = "video") {
     throw new Error(inviteError.message || "call_invite_create_failed");
   }
 
-  for (const calleeId of calleeIds) {
-    await sendRingSignal(supabase, calleeId, {
-      type: "invite",
-      room_id: room.id,
-      from_id: user.id,
-      from_name: profile?.full_name || user.email,
-      kind,
-    });
-  }
-
+  // The realtime "ring" broadcast is sent by the caller's own browser right
+  // after this returns (see CallPicker.js) — it needs the browser's own
+  // Supabase Realtime client, which isn't available in a Server Action.
   return room;
 }
 
