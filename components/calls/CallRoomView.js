@@ -270,14 +270,21 @@ export default function CallRoomView({ profile, roomId, kind }) {
         return profile.id < otherId;
       }
 
-      function maybeOfferAsElder(peerId, name) {
+      function maybeOfferAsElder(peerId, name, { retry = false } = {}) {
         if (peerId === profile.id) return;
         knownParticipantsRef.current.add(peerId);
         setRemoteStreams((prev) => ({
           ...prev,
           [peerId]: { stream: prev[peerId]?.stream || null, name: name || prev[peerId]?.name || "" },
         }));
-        if (isElder(peerId)) engine.offerTo(peerId);
+        if (!isElder(peerId)) return;
+        // The 2.5s/5s safety-net loop below must use reofferIfNeverConnected,
+        // not offerTo — our very first offer may itself have gone out before
+        // the other side finished subscribing and gotten lost with no reply,
+        // and offerTo refuses to retry a peer it already created a connection
+        // for, stuck or not.
+        if (retry) engine.reofferIfNeverConnected(peerId);
+        else engine.offerTo(peerId);
       }
 
       const channel = supabase.channel(`call:${roomId}`, { config: { broadcast: { self: false } } });
@@ -353,7 +360,8 @@ export default function CallRoomView({ profile, roomId, kind }) {
               if (participantRow.user_id === profile.id || engine.isConnected(participantRow.user_id)) continue;
               maybeOfferAsElder(
                 participantRow.user_id,
-                participantRow.profile?.full_name || participantRow.profile?.email || ""
+                participantRow.profile?.full_name || participantRow.profile?.email || "",
+                { retry: true }
               );
             }
           }, delay));
