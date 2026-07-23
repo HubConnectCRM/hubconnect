@@ -17,6 +17,57 @@ import { Button, Card, Textarea } from "@/components/ui";
 
 const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
+// This IS the classic North American telephone ringback cadence (440/480Hz,
+// 2s on / 4s off) — unlike the callee-side chime in IncomingCallListener.js,
+// this plays for the CALLER while waiting for the other side to answer, so
+// the "someone is dialing" association is the correct one here.
+function startRingbackTone() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return () => {};
+  const ctx = new AudioContextClass();
+  let stopped = false;
+  let cycleTimer = null;
+
+  function ring() {
+    if (stopped) return;
+    const now = ctx.currentTime;
+    for (const freq of [440, 480]) {
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.frequency.value = freq;
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.exponentialRampToValueAtTime(0.15, now + 0.05);
+      gain.gain.setValueAtTime(0.15, now + 1.95);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 2);
+      oscillator.connect(gain).connect(ctx.destination);
+      oscillator.start(now);
+      oscillator.stop(now + 2);
+    }
+    cycleTimer = setTimeout(ring, 6_000);
+  }
+
+  function tryResume() {
+    void ctx.resume().then(() => {
+      if (ctx.state === "running") {
+        document.removeEventListener("pointerdown", tryResume);
+        document.removeEventListener("keydown", tryResume);
+      }
+    }).catch(() => {});
+  }
+  tryResume();
+  document.addEventListener("pointerdown", tryResume);
+  document.addEventListener("keydown", tryResume);
+  ring();
+
+  return () => {
+    stopped = true;
+    if (cycleTimer) clearTimeout(cycleTimer);
+    document.removeEventListener("pointerdown", tryResume);
+    document.removeEventListener("keydown", tryResume);
+    void ctx.close().catch(() => {});
+  };
+}
+
 export default function CallRoomView({ profile, roomId, kind }) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -56,6 +107,12 @@ export default function CallRoomView({ profile, roomId, kind }) {
     const timer = setInterval(update, 1_000);
     return () => clearInterval(timer);
   }, [callStartedAt]);
+
+  useEffect(() => {
+    if (status !== "ringing") return;
+    const stop = startRingbackTone();
+    return stop;
+  }, [status]);
 
   async function persistTranscript() {
     const note = `${transcriptRef.current} ${interimTranscriptRef.current}`.replace(/\s+/g, " ").trim();

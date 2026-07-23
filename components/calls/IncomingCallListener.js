@@ -45,12 +45,28 @@ function startRingtone() {
     cycleTimer = setTimeout(ring, 2_400);
   }
 
-  void ctx.resume().catch(() => {});
+  // Browsers block audio playback until the page has had a real user
+  // gesture — an incoming call arrives over a realtime message, not a click,
+  // so ctx.resume() can silently stay "suspended" and nothing plays. If that
+  // happens, retry on the very next interaction anywhere on the page.
+  function tryResume() {
+    void ctx.resume().then(() => {
+      if (ctx.state === "running") {
+        document.removeEventListener("pointerdown", tryResume);
+        document.removeEventListener("keydown", tryResume);
+      }
+    }).catch(() => {});
+  }
+  tryResume();
+  document.addEventListener("pointerdown", tryResume);
+  document.addEventListener("keydown", tryResume);
   ring();
 
   return () => {
     stopped = true;
     if (cycleTimer) clearTimeout(cycleTimer);
+    document.removeEventListener("pointerdown", tryResume);
+    document.removeEventListener("keydown", tryResume);
     void ctx.close().catch(() => {});
   };
 }
