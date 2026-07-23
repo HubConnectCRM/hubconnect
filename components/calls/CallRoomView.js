@@ -99,6 +99,7 @@ export default function CallRoomView({ profile, roomId, kind }) {
   const interimTranscriptRef = useRef("");
   const teardownRef = useRef(null);
   const savePromiseRef = useRef(null);
+  const knownParticipantsRef = useRef(new Set());
 
   useEffect(() => {
     if (!callStartedAt) return;
@@ -259,6 +260,7 @@ export default function CallRoomView({ profile, roomId, kind }) {
 
       function maybeOfferAsElder(peerId, name, otherJoinedAt) {
         if (peerId === profile.id) return;
+        knownParticipantsRef.current.add(peerId);
         setRemoteStreams((prev) => ({
           ...prev,
           [peerId]: { stream: prev[peerId]?.stream || null, name: name || prev[peerId]?.name || "" },
@@ -280,7 +282,14 @@ export default function CallRoomView({ profile, roomId, kind }) {
         if (payload.type === "offer") void engine.handleOffer(senderId, payload.sdp).catch(() => {});
         else if (payload.type === "answer") void engine.handleAnswer(senderId, payload.sdp).catch(() => {});
         else if (payload.type === "ice-candidate") void engine.handleIceCandidate(senderId, payload.candidate).catch(() => {});
-        else if (payload.type === "hangup") engine.removePeer(senderId);
+        else if (payload.type === "hangup") {
+          engine.removePeer(senderId);
+          knownParticipantsRef.current.delete(senderId);
+          // A 1-on-1 call's only other participant just left — the call is
+          // over, not "waiting to reconnect". A group call (someone else
+          // still on the line) should keep going.
+          if (knownParticipantsRef.current.size === 0) void hangUp();
+        }
       });
 
       channel.subscribe(async (subStatus) => {
