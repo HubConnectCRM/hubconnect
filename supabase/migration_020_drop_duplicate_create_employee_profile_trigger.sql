@@ -1,0 +1,21 @@
+-- Found via pg_trigger inspection: a SECOND, completely independent
+-- AFTER INSERT ON auth.users trigger existed alongside on_auth_user_created
+-- (handle_new_user) — create_employee_profile_after_signup, calling
+-- create_employee_profile(). It does the exact same insert-into-profiles
+-- job, but was never migrated off the old user_role enum like
+-- handle_new_user() was. Multiple AFTER INSERT triggers on the same table
+-- fire in alphabetical order by trigger name — "create_employee_profile..."
+-- sorts before "on_auth_user_created", so this broken duplicate always ran
+-- FIRST, raised "column role is of type app_role but expression is of type
+-- user_role", and aborted the whole transaction before handle_new_user()
+-- (already fixed, in migration_019) ever got a chance to run. That's why
+-- every single signup attempt kept failing with "Database error creating
+-- new user" even after handle_new_user() was confirmed correct.
+--
+-- validate_employee_invite() (a separate BEFORE INSERT trigger, unaffected
+-- by this bug) already resolves the invite's real app_role and writes it
+-- into raw_user_meta_data before either AFTER trigger runs, so
+-- handle_new_user() alone is sufficient — this duplicate can just be
+-- removed outright rather than fixed in place.
+drop trigger if exists create_employee_profile_after_signup on auth.users;
+drop function if exists public.create_employee_profile();
