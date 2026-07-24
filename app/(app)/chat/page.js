@@ -14,7 +14,7 @@ export default async function ChatPage({ searchParams }) {
   }
   if (!(visibleGroups || []).some((group) => group.kind === "company")) await createStandingGroup("Tüm Şirket", "company");
   if (profile.role !== "viewer" && !(visibleGroups || []).some((group) => group.kind === "position" && group.position === profile.role)) {
-    const roleName = profile.role === "sales" ? "Sales" : profile.role === "event" ? "Events" : profile.role === "admin" ? "Admin" : profile.role;
+    const roleName = profile.role === "sales" ? "Sales" : profile.role === "events" ? "Events" : profile.role === "admin" ? "Admin" : profile.role;
     await createStandingGroup(`${roleName} Ekibi`, "position", profile.role);
   }
   await supabase.rpc("join_default_chat_groups");

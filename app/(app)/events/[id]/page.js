@@ -44,7 +44,7 @@ export default async function EventPage({ params }) {
       groups={groups || []}
       owners={owners || []}
       assignments={assignments || []}
-      canManage={profile.role === "admin" || profile.role === "event"}
+      canManage={profile.role === "admin" || profile.role === "events"}
       currentRole={profile.role}
     />
   );

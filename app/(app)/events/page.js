@@ -29,5 +29,5 @@ export default async function EventsPage() {
     };
   });
 
-  return <EventsList events={rows} canManage={profile.role === "admin" || profile.role === "event"} />;
+  return <EventsList events={rows} canManage={profile.role === "admin" || profile.role === "events"} />;
 }

@@ -135,14 +135,14 @@ export default function AccreditationConsole({ events, selectedEvent, initialEve
 
   return <div className="mx-auto max-w-[1800px]">
     <PageHeader title={t("accreditation.title")} subtitle={`${copy.subtitle} · ${copy.live}`}>
-      {canEdit && ["admin", "event"].includes(currentUser.role) && <Button href={`/import?destination=event&eventId=${initialEventId}`}>{copy.importExcel}</Button>}
+      {canEdit && ["admin", "events"].includes(currentUser.role) && <Button href={`/import?destination=event&eventId=${initialEventId}`}>{copy.importExcel}</Button>}
       <Button variant="secondary" href={`/api/export/accreditation?event=${initialEventId}`}>{t("accreditation.export")}</Button>
     </PageHeader>
 
     <Card className="mb-4 overflow-visible border-[var(--brand)]/25">
       <div className="grid items-center gap-4 p-4 lg:grid-cols-[auto_minmax(0,1fr)_minmax(320px,520px)]">
         <div className={`flex h-16 min-w-16 flex-col items-center justify-center rounded-2xl text-center font-bold ${timing.live ? "bg-emerald-400 text-black" : "bg-[var(--brand)] text-[var(--brand-ink)]"}`}><strong className="text-base leading-none">{timing.value}</strong>{timing.label && <span className="mt-1 max-w-14 text-[8px] uppercase leading-tight">{timing.label}</span>}</div>
-        <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h2 className="truncate text-lg font-semibold">{selectedEvent?.name}</h2><Badge color={canEdit ? "green" : "gray"}>{currentUser.role === "admin" ? copy.adminAccess : canEdit ? copy.assigned : copy.readOnly}</Badge>{timing.live && <Badge color="green">{copy.liveEvent}</Badge>}</div><p className="mt-1 text-xs text-[var(--muted)]">{[selectedEvent?.start_date, selectedEvent?.end_date && selectedEvent.end_date !== selectedEvent.start_date ? selectedEvent.end_date : null, selectedEvent?.location].filter(Boolean).join(" · ") || "Event-day workspace"}</p></div>
+        <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h2 className="truncate text-lg font-semibold">{selectedEvent?.name}</h2><Badge color={canEdit ? "green" : "gray"}>{["admin", "events"].includes(currentUser.role) ? copy.adminAccess : canEdit ? copy.assigned : copy.readOnly}</Badge>{timing.live && <Badge color="green">{copy.liveEvent}</Badge>}</div><p className="mt-1 text-xs text-[var(--muted)]">{[selectedEvent?.start_date, selectedEvent?.end_date && selectedEvent.end_date !== selectedEvent.start_date ? selectedEvent.end_date : null, selectedEvent?.location].filter(Boolean).join(" · ") || "Event-day workspace"}</p></div>
         <div><p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[.14em] text-[var(--muted)]">{copy.eventPicker}</p><Combobox options={eventOptions} value={initialEventId} onChange={(eventId) => router.push(`/accreditation?event=${eventId}`)} placeholder={copy.eventPicker} /></div>
       </div>
       {!canEdit && accessRestricted && <div className="border-t border-amber-400/20 bg-amber-400/[.06] px-4 py-3 text-xs text-amber-100">{copy.readOnlyHint}</div>}

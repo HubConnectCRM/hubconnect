@@ -10,7 +10,7 @@ function clean(v) {
 }
 
 function canManageEvents(profile) {
-  return profile?.role === "admin" || profile?.role === "event";
+  return profile?.role === "admin" || profile?.role === "events";
 }
 
 function canManageSales(profile) {

@@ -365,7 +365,7 @@ function buildNotes(raw) {
 export async function importContacts(rows, options = {}) {
   const { supabase, user, profile } = await requireProfile();
   const destination = options.destination || "contacts";
-  if (destination === "event" && profile.role !== "admin" && profile.role !== "event") return { ok: false, error: "events_read_only" };
+  if (destination === "event" && profile.role !== "admin" && profile.role !== "events") return { ok: false, error: "events_read_only" };
   if (["lead_file", "new_lead_file", "sales_pipeline"].includes(destination) && profile.role !== "admin" && profile.role !== "sales") return { ok: false, error: "sales_read_only" };
   if (!Array.isArray(rows) || rows.length === 0) return { ok: true, inserted: 0, skipped: 0, linked: 0, deals: 0, eventRegistrations: 0, enrichedCompanies: 0 };
 

@@ -12,7 +12,11 @@ function defaultEvent(events, today) {
 export default async function AccreditationPage({ searchParams }) {
   const query = await searchParams;
   const { supabase, profile } = await requireProfile();
-  const isAdmin = profile.role === "admin";
+  // The Events team runs accreditation day-to-day — they're the ones who
+  // assign sales reps access to specific events, not someone who needs to
+  // be assigned themselves — so they get the same blanket access as admin
+  // here, not the per-event assignment gate everyone else goes through.
+  const isAdmin = profile.role === "admin" || profile.role === "events";
   const today = new Date().toISOString().slice(0, 10);
   let events = [];
   let assignmentIds = new Set();
