@@ -61,7 +61,8 @@
     "calls": "Görüşmeler",
     "notifications": "Bildirimler",
     "accreditation": "Akreditasyon",
-    "more": "Daha Fazla"
+    "more": "Daha Fazla",
+    "journal": "Journal"
   },
   "sales": {
     "title": "Sales",
@@ -433,5 +434,21 @@
     "addNoteTitle": "Görüşme notu ekle", "addNoteHint": "Konuşma algılanmadı. Çıkmadan önce isteğe bağlı bir not ekleyebilirsin.", "notePlaceholder": "Görüşmede neler konuşuldu?", "noteSaveError": "Görüşme notu kaydedilemedi. Metnin burada duruyor; tekrar dene.", "noteRequired": "Kaydetmeden önce bir not yaz.",
     "skipNote": "Not eklemeden çık", "viewNotes": "Görüşme Notları", "saveChanges": "Değişiklikleri kaydet", "notesTitle": "Görüşme Notları", "notesSubtitle": "Tüm katılımcıların notları görüşme bazında gruplanır ve HubConnect iOS ile senkron çalışır.", "backToCalls": "Görüşmelere dön", "noNotes": "Henüz görüşme notu yok.",
     "noteCount": "{{count}} not", "unknownParticipants": "Görüşme katılımcıları", "unknownAuthor": "Bilinmeyen kullanıcı", "aiSummary": "AI özeti", "transcript": "Transkript", "withNames": "Görüşülen kişiler: {{names}}"
+  },
+  "journal": {
+    "title": "Journal",
+    "subtitle": "Günlük notların, aramaların ve hatırlatıcıların.",
+    "searchPlaceholder": "Notlarda ara",
+    "addTask": "Hatırlatma ekle",
+    "newTask": "Yeni Hatırlatma",
+    "taskTitle": "Başlık",
+    "taskNote": "Not (isteğe bağlı)",
+    "remindOnDate": "Tarih hatırlat",
+    "dateReflectsCalendar": "Tarihli hatırlatmalar takvimine de yansır.",
+    "noEntries": "Henüz journal kaydı yok",
+    "noEntriesDescription": "Görüşme notların ve lead güncellemelerin burada otomatik listelenir.",
+    "today": "Bugün",
+    "yesterday": "Dün",
+    "kinds": { "call_note": "Görüşme Notu", "task": "Hatırlatma", "lead_update": "Lead Güncelleme" }
   }
 }

@@ -100,7 +100,21 @@ export async function logContactCall(prevState, formData) {
   const { error } = await supabase.from("call_logs").insert(row);
   if (error) return { error: error.message };
   await supabase.from("interactions").insert({ contact_id: contactId, user_id: user.id, type: "call", topic: row.interaction_type, action_text: row.outcome, next_step: row.note, occurred_on: new Date().toISOString().slice(0,10) });
+
+  // Mirrors the outcome into the caller's own Journal, same as HubConnect iOS —
+  // best-effort so a pre-migration install (journal_entries missing) still logs the call.
+  const { data: contact } = await supabase.from("contacts").select("first_name, last_name").eq("id", contactId).maybeSingle();
+  const contactName = [contact?.first_name, contact?.last_name].filter(Boolean).join(" ") || "Contact";
+  await supabase.from("journal_entries").insert({
+    owner_id: user.id,
+    kind: "call_note",
+    title: contactName,
+    note: row.note ? `${row.outcome} — ${row.note}` : row.outcome,
+    linked_contact_id: contactId,
+  });
+
   revalidatePath(`/contacts/${contactId}`);
+  revalidatePath("/journal");
   return { ok: Date.now() };
 }
 

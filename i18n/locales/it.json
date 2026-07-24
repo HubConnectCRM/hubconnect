@@ -61,7 +61,8 @@
     "calls": "Chiamate",
     "notifications": "Notifiche",
     "accreditation": "Accreditamento",
-    "more": "Altro"
+    "more": "Altro",
+    "journal": "Journal"
   },
   "sales": {
     "title": "Sales",
@@ -433,5 +434,21 @@
     "addNoteTitle": "Aggiungi una nota alla chiamata", "addNoteHint": "Nessun parlato è stato trascritto. Prima di uscire puoi aggiungere una nota facoltativa.", "notePlaceholder": "Di cosa avete parlato?", "noteSaveError": "Impossibile salvare la nota. Il testo è ancora qui; riprova.", "noteRequired": "Scrivi una nota prima di salvare.",
     "skipNote": "Salta nota", "viewNotes": "Note chiamate", "saveChanges": "Salva modifiche", "notesTitle": "Note delle chiamate", "notesSubtitle": "Le note di tutti i partecipanti sono raggruppate per chiamata e sincronizzate con HubConnect iOS.", "backToCalls": "Torna alle chiamate", "noNotes": "Non ci sono ancora note di chiamata.",
     "noteCount": "{{count}} note", "unknownParticipants": "Partecipanti alla chiamata", "unknownAuthor": "Autore sconosciuto", "aiSummary": "Riepilogo AI", "transcript": "Trascrizione", "withNames": "Chiamata con: {{names}}"
+  },
+  "journal": {
+    "title": "Journal",
+    "subtitle": "Le tue note giornaliere, chiamate e promemoria.",
+    "searchPlaceholder": "Cerca nelle note",
+    "addTask": "Aggiungi promemoria",
+    "newTask": "Nuovo Promemoria",
+    "taskTitle": "Titolo",
+    "taskNote": "Nota (facoltativo)",
+    "remindOnDate": "Ricorda in una data",
+    "dateReflectsCalendar": "I promemoria con data compaiono anche nel tuo calendario.",
+    "noEntries": "Ancora nessuna voce nel journal",
+    "noEntriesDescription": "Le tue note di chiamata e gli aggiornamenti dei lead vengono elencati qui automaticamente.",
+    "today": "Oggi",
+    "yesterday": "Ieri",
+    "kinds": { "call_note": "Nota di chiamata", "task": "Promemoria", "lead_update": "Aggiornamento lead" }
   }
 }

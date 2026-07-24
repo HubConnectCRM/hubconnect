@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { Badge, Button, Card, Field, Input, Select, Textarea } from "@/components/ui";
 import { createMeeting, deleteMeeting } from "@/app/(app)/calendar/actions";
+import { toggleJournalTask } from "@/app/(app)/journal/actions";
 import { calendarColor } from "@/lib/calendarPalette";
 
 const COPY = {
@@ -38,7 +39,7 @@ function localeCode(language) {
   return language?.startsWith("tr") ? "tr-TR" : language?.startsWith("it") ? "it-IT" : "en-GB";
 }
 
-export default function TeamCalendarView({ meetings, teammates, contacts, currentUserId, isAdmin }) {
+export default function TeamCalendarView({ meetings, teammates, contacts, journalTasks = [], currentUserId, isAdmin }) {
   const { t, i18n } = useTranslation();
   const copy = COPY[i18n.language?.slice(0, 2)] || COPY.en;
   const locale = localeCode(i18n.language);
@@ -98,7 +99,7 @@ export default function TeamCalendarView({ meetings, teammates, contacts, curren
             <div className="flex items-center gap-2 text-xs text-[var(--muted)]"><span>{copy.timezone}</span><button type="button" onClick={() => setView("week")} className={`rounded-lg px-3 py-2 ${view === "week" ? "bg-[var(--brand)] text-[var(--brand-ink)]" : "bg-white/5"}`}>{copy.week}</button><button type="button" onClick={() => setView("agenda")} className={`rounded-lg px-3 py-2 ${view === "agenda" ? "bg-[var(--brand)] text-[var(--brand-ink)]" : "bg-white/5"}`}>{copy.agenda}</button></div>
           </div>
 
-          {view === "agenda" ? <AgendaView meetings={agendaVisible} days={agendaDays} selectedDay={agendaDay} onSelectDay={setAgendaDay} ownerColors={ownerColors} currentUserId={currentUserId} locale={locale} copy={copy} onOpen={setSelectedMeeting} /> : <div className="overflow-x-auto">
+          {view === "agenda" ? <AgendaView meetings={agendaVisible} journalTasks={journalTasks} days={agendaDays} selectedDay={agendaDay} onSelectDay={setAgendaDay} ownerColors={ownerColors} currentUserId={currentUserId} locale={locale} copy={copy} onOpen={setSelectedMeeting} /> : <div className="overflow-x-auto">
             <div className="min-w-[980px]">
               <div className="grid grid-cols-[72px_repeat(7,minmax(120px,1fr))] border-b border-[var(--border)]">
                 <div className="border-r border-[var(--border)] p-3 text-xs text-[var(--muted)]">GMT{new Date().getTimezoneOffset() <= 0 ? "+" : "-"}{Math.abs(new Date().getTimezoneOffset() / 60)}</div>
@@ -129,12 +130,16 @@ export default function TeamCalendarView({ meetings, teammates, contacts, curren
   );
 }
 
-function AgendaView({ meetings, days, selectedDay, onSelectDay, ownerColors, currentUserId, locale, copy, onOpen }) {
+function AgendaView({ meetings, journalTasks, days, selectedDay, onSelectDay, ownerColors, currentUserId, locale, copy, onOpen }) {
   const today = new Date();
   const tomorrow = addDays(today, 1);
   const grouped = days
-    .map((day) => ({ day, rows: meetings.filter((meeting) => sameDay(new Date(meeting.start_at), day)).sort((a, b) => new Date(a.start_at) - new Date(b.start_at)) }))
-    .filter((group) => group.rows.length && group.day >= new Date(selectedDay.getFullYear(), selectedDay.getMonth(), selectedDay.getDate()));
+    .map((day) => ({
+      day,
+      rows: meetings.filter((meeting) => sameDay(new Date(meeting.start_at), day)).sort((a, b) => new Date(a.start_at) - new Date(b.start_at)),
+      tasks: journalTasks.filter((task) => sameDay(new Date(task.due_at), day)).sort((a, b) => new Date(a.due_at) - new Date(b.due_at)),
+    }))
+    .filter((group) => (group.rows.length || group.tasks.length) && group.day >= new Date(selectedDay.getFullYear(), selectedDay.getMonth(), selectedDay.getDate()));
   function heading(day) {
     const date = day.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" });
     if (sameDay(day, today)) return `${copy.today} • ${date}`;
@@ -144,7 +149,21 @@ function AgendaView({ meetings, days, selectedDay, onSelectDay, ownerColors, cur
   function duration(row) { const minutes = Math.max(0, Math.round((new Date(row.end_at) - new Date(row.start_at)) / 60000)); const hours = Math.floor(minutes / 60); const rest = minutes % 60; const minuteUnit = locale.startsWith("tr") ? "d" : "min"; return hours ? `${hours}${locale.startsWith("tr") ? "sa" : "h"}${rest ? ` ${rest}${minuteUnit}` : ""}` : `${minutes}${minuteUnit}`; }
   return <div className="p-4">
     <div className="mb-5 flex gap-2 overflow-x-auto pb-2">{days.map((day) => <button key={day.toISOString()} type="button" onClick={() => onSelectDay(day)} className={`min-w-20 rounded-2xl border px-4 py-3 text-center ${sameDay(day, selectedDay) ? "border-[var(--brand)] bg-[var(--brand)] text-[var(--brand-ink)]" : "border-[var(--border)] bg-white/[.03]"}`}><span className="block text-[10px] font-semibold uppercase">{day.toLocaleDateString(locale, { weekday: "short" })}</span><strong className="mt-1 block text-xl">{day.getDate()}</strong></button>)}</div>
-    {grouped.length === 0 ? <div className="rounded-2xl border border-dashed border-[var(--border)] p-10 text-center text-sm text-[var(--muted)]">{copy.noDayMeetings}</div> : <div className="space-y-6">{grouped.map(({ day, rows }) => <section key={day.toISOString()}><h3 className="mb-2 text-sm font-semibold capitalize text-[var(--muted)]">{heading(day)}</h3><div className="space-y-2">{rows.map((meeting) => { const start = new Date(meeting.start_at); const color = ownerColors.get(meeting.owner_id); return <button key={meeting.id} type="button" onClick={() => onOpen(meeting)} className="flex w-full items-center overflow-hidden rounded-2xl border border-[var(--border)] bg-white/[.03] text-left transition hover:border-white/20"><span className="w-1.5 self-stretch" style={{ background: color }} /><span className="w-24 shrink-0 p-4 text-sm font-semibold" style={{ color }}>{start.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}<small className="mt-1 block font-normal text-[var(--muted)]">{duration(meeting)}</small></span><span className="h-2 w-2 shrink-0 rounded-full" style={{ background: color }} /><span className="min-w-0 flex-1 p-4"><strong className="block truncate">{meeting.title || copy.noTitle}</strong><span className="mt-1 block truncate text-xs text-[var(--muted)]">{meeting.owner_id === currentUserId ? meeting.location || copy.noTitle : meeting.owner?.full_name || meeting.owner?.email || meeting.location || ""}</span></span></button>; })}</div></section>)}</div>}
+    {grouped.length === 0 ? <div className="rounded-2xl border border-dashed border-[var(--border)] p-10 text-center text-sm text-[var(--muted)]">{copy.noDayMeetings}</div> : <div className="space-y-6">{grouped.map(({ day, rows, tasks }) => <section key={day.toISOString()}><h3 className="mb-2 text-sm font-semibold capitalize text-[var(--muted)]">{heading(day)}</h3><div className="space-y-2">{tasks.map((task) => <JournalTaskRow key={task.id} task={task} locale={locale} />)}{rows.map((meeting) => { const start = new Date(meeting.start_at); const color = ownerColors.get(meeting.owner_id); return <button key={meeting.id} type="button" onClick={() => onOpen(meeting)} className="flex w-full items-center overflow-hidden rounded-2xl border border-[var(--border)] bg-white/[.03] text-left transition hover:border-white/20"><span className="w-1.5 self-stretch" style={{ background: color }} /><span className="w-24 shrink-0 p-4 text-sm font-semibold" style={{ color }}>{start.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}<small className="mt-1 block font-normal text-[var(--muted)]">{duration(meeting)}</small></span><span className="h-2 w-2 shrink-0 rounded-full" style={{ background: color }} /><span className="min-w-0 flex-1 p-4"><strong className="block truncate">{meeting.title || copy.noTitle}</strong><span className="mt-1 block truncate text-xs text-[var(--muted)]">{meeting.owner_id === currentUserId ? meeting.location || copy.noTitle : meeting.owner?.full_name || meeting.owner?.email || meeting.location || ""}</span></span></button>; })}</div></section>)}</div>}
+  </div>;
+}
+
+// Journal task reminders (from /journal) with a due date surface here too —
+// separate from meetings since they're a personal checklist item, not a
+// timed calendar block, so they get a checkbox instead of an open-detail click.
+function JournalTaskRow({ task, locale }) {
+  const [pending, startTransition] = useTransition();
+  const [completed, setCompleted] = useState(task.completed);
+  const due = new Date(task.due_at);
+  return <div className={`flex w-full items-center overflow-hidden rounded-2xl border border-dashed border-[var(--border)] bg-white/[.02] ${completed ? "opacity-60" : ""}`}>
+    <span className="w-24 shrink-0 p-4 text-sm font-semibold text-amber-300">{due.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}</span>
+    <button type="button" disabled={pending} onClick={() => startTransition(async () => { const next = !completed; setCompleted(next); await toggleJournalTask(task.id, next); })} className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 text-[10px] ${completed ? "border-amber-300 bg-amber-300 text-black" : "border-[var(--border)] text-transparent"}`}>✓</button>
+    <span className="min-w-0 flex-1 p-4"><strong className={`block truncate ${completed ? "line-through" : ""}`}>{task.title}</strong>{task.note && <span className="mt-1 block truncate text-xs text-[var(--muted)]">{task.note}</span>}</span>
   </div>;
 }
 

@@ -61,7 +61,8 @@
     "calls": "Calls",
     "notifications": "Notifications",
     "accreditation": "Accreditation",
-    "more": "More"
+    "more": "More",
+    "journal": "Journal"
   },
   "sales": {
     "title": "Sales",
@@ -559,5 +560,21 @@
     "aiSummary": "AI summary",
     "transcript": "Transcript",
     "withNames": "Call with: {{names}}"
+  },
+  "journal": {
+    "title": "Journal",
+    "subtitle": "Your daily notes, calls and reminders.",
+    "searchPlaceholder": "Search notes",
+    "addTask": "Add reminder",
+    "newTask": "New reminder",
+    "taskTitle": "Title",
+    "taskNote": "Note (optional)",
+    "remindOnDate": "Remind on a date",
+    "dateReflectsCalendar": "Dated reminders also show up on your calendar.",
+    "noEntries": "No journal entries yet",
+    "noEntriesDescription": "Your call notes and lead updates are listed here automatically.",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "kinds": { "call_note": "Call note", "task": "Reminder", "lead_update": "Lead update" }
   }
 }
