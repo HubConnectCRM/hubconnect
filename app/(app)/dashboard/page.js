@@ -1,10 +1,41 @@
 import { requireProfile } from "@/lib/auth";
 import DashboardView from "@/components/DashboardView";
+import EventsDashboardView from "@/components/EventsDashboardView";
 
 export default async function DashboardPage() {
   const { supabase, profile } = await requireProfile();
 
   const today = new Date().toISOString().slice(0, 10);
+
+  // The Events team doesn't have a sales pipeline or leads — their home
+  // screen is about events and accreditation instead: upcoming events, and
+  // sales-pushed sponsor registrations still waiting on Events confirmation
+  // (pushDealToEvent always leaves these at status "registered", never
+  // "confirmed" — that's an Events-team decision).
+  if (profile.role === "events") {
+    const [eventsCount, upcomingEvents, pendingSponsors, confirmedUpcoming] = await Promise.all([
+      supabase.from("events").select("*", { count: "exact", head: true }).neq("status", "cancelled"),
+      supabase.from("events").select("id, name, location, venue_name, start_date, status, prospect_number").gte("start_date", today).neq("status", "cancelled").order("start_date").limit(4),
+      supabase
+        .from("event_registrations")
+        .select("id, event_id, status, event:events(id, name, start_date), contact:contacts(full_name, company:companies(name))")
+        .eq("registration_source", "sales")
+        .in("status", ["registered", "invited", "waiting_list"])
+        .order("created_at", { ascending: false })
+        .limit(8),
+      supabase.from("event_registrations").select("id, event:events!inner(start_date)", { count: "exact", head: true }).eq("status", "confirmed").gte("event.start_date", today),
+    ]);
+
+    return (
+      <EventsDashboardView
+        name={profile?.full_name || profile?.email}
+        stats={{ events: eventsCount.count || 0, confirmedUpcoming: confirmedUpcoming.count || 0 }}
+        upcomingEvents={upcomingEvents.data || []}
+        pendingSponsors={pendingSponsors.data || []}
+      />
+    );
+  }
+
   const [contacts, companies, events, leads, deals, activePipeline, wonDeals, upcomingEvents, leadFollowups, recentActivity] = await Promise.all([
     supabase.from("contacts").select("*", { count: "exact", head: true }),
     supabase.from("companies").select("*", { count: "exact", head: true }),

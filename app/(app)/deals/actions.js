@@ -258,6 +258,11 @@ export async function pushDealToEvent(prevState, formData) {
         contact_id: rep.contact_id,
         registration_source: "sales",
         status: "registered",
+        // Every sales-sourced registration is a sponsor — a won, paid deal
+        // is sponsorship revenue, not a guest/speaker booking. The Events
+        // team handles guest/speaker registrations themselves, separately,
+        // via the "Add a contact to this event" form.
+        participant_type: "sponsor",
         rsvp: null,
         group_id: eventGroupId,
         deal_id: dealId,

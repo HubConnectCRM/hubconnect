@@ -8,7 +8,7 @@ import Combobox from "@/components/Combobox";
 import { createClient } from "@/lib/supabase/client";
 
 const EVENT_STATUSES = ["desiderata", "invited", "registered", "waiting_list", "confirmed", "declined"];
-const TYPES = ["guest", "speaker", "reserved_seat", "staff"];
+const TYPES = ["sponsor", "guest", "speaker", "reserved_seat", "staff"];
 const BADGES = ["exists", "missing", "no_badge"];
 const STATUS_COLORS = { desiderata: "gray", invited: "blue", registered: "brand", waiting_list: "amber", confirmed: "green", declined: "red" };
 const ATTENDANCE_COLORS = { pending: "gray", attended: "green", not_attended: "red" };
@@ -232,6 +232,6 @@ function ConsentToggle({ label, checked, disabled, onChange }) {
   return <button type="button" disabled={disabled} onClick={() => onChange(!checked)} className="flex items-center gap-1.5 text-[10px] text-[var(--muted)] disabled:opacity-60"><span className={`flex h-5 w-5 items-center justify-center rounded-md border ${checked ? "border-[var(--brand)] bg-[var(--brand)] text-[var(--brand-ink)]" : "border-white/15"}`}>{checked ? "✓" : ""}</span>{label}</button>;
 }
 
-function typeLabel(value, t) { return value === "speaker" ? t("participants.speaker") : value === "reserved_seat" ? t("participants.reservedSeat") : value === "staff" ? t("participants.staff") : t("participants.guest"); }
+function typeLabel(value, t) { return value === "sponsor" ? t("participants.sponsor") : value === "speaker" ? t("participants.speaker") : value === "reserved_seat" ? t("participants.reservedSeat") : value === "staff" ? t("participants.staff") : t("participants.guest"); }
 function badgeLabel(value, t) { return value === "missing" ? t("badges.missing") : value === "no_badge" ? t("badges.noBadge") : t("badges.exists"); }
 function statusLabel(value) { return String(value || "registered").replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase()); }

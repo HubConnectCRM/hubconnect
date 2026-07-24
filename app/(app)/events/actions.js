@@ -122,12 +122,17 @@ export async function addRegistration(prevState, formData) {
     contactId = created.id;
   }
 
+  const participantType = clean(formData.get("participant_type"));
   const { error } = await supabase.from("event_registrations").insert({
     event_id: eventId,
     contact_id: contactId,
     status: clean(formData.get("status")) || "desiderata",
     group_id: clean(formData.get("group_id")) || null,
     registration_source: clean(formData.get("registration_source")) || "event",
+    // Manually-added contacts are the Events team's own guests/speakers —
+    // never "sponsor", which is reserved for sales-sourced pushes
+    // (pushDealToEvent always tags those explicitly).
+    ...(participantType && participantType !== "sponsor" ? { participant_type: participantType } : {}),
     requested_by: user.id,
   });
   if (error) {

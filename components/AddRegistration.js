@@ -7,6 +7,10 @@ import { Button, Field, Input, Select } from "@/components/ui";
 import Combobox from "@/components/Combobox";
 import { EVENT_REG_STATUSES } from "@/lib/constants";
 
+// "sponsor" is reserved for sales-sourced pushes (pushDealToEvent) — the
+// Events team categorizes the people they add themselves as one of these.
+const PARTICIPANT_TYPES = ["guest", "speaker", "reserved_seat", "staff"];
+
 export default function AddRegistration({ eventId, contacts, groups }) {
   const { t } = useTranslation();
   const [state, action, pending] = useActionState(addRegistration, {});
@@ -95,6 +99,17 @@ export default function AddRegistration({ eventId, contacts, groups }) {
               {EVENT_REG_STATUSES.map((s) => (
                 <option key={s} value={s}>
                   {t(`bridge.statuses.${s}`)}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </div>
+        <div className="w-44">
+          <Field label={t("events.participantType")}>
+            <Select name="participant_type" defaultValue="guest">
+              {PARTICIPANT_TYPES.map((value) => (
+                <option key={value} value={value}>
+                  {t(`participants.${value === "reserved_seat" ? "reservedSeat" : value}`)}
                 </option>
               ))}
             </Select>
