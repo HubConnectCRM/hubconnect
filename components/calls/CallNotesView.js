@@ -52,9 +52,12 @@ export default function CallNotesView({ notes, loadError }) {
                       {new Date(callDate).toLocaleString(locale)} · {t("calls.noteCount", { count: roomNotes.length })}
                     </p>
                   </div>
-                  <span className="rounded-full bg-white/[0.05] px-3 py-1 text-xs text-zinc-500">
-                    {roomId.slice(0, 8)}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <Button href={`/calls/notes/${roomId}`} variant="secondary">{t("calls.viewConversation")}</Button>
+                    <span className="rounded-full bg-white/[0.05] px-3 py-1 text-xs text-zinc-500">
+                      {roomId.slice(0, 8)}
+                    </span>
+                  </div>
                 </div>
                 <div className="grid gap-4 p-5 lg:grid-cols-2">
                   {roomNotes.map((note) => {

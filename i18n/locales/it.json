@@ -402,6 +402,13 @@
     "mailbosDisconnect": "Disconnetti",
     "mailbosInvalidKey": "Chiave non valida.",
     "mailbosUnreachable": "MailBos non raggiungibile. Riprova più tardi.",
+    "openaiTitle": "OpenAI — Riepiloghi chiamate",
+    "openaiHint": "Facoltativo: aggiungi la tua chiave API OpenAI per generare un riepilogo AI/punti chiave/azioni per le chiamate in cui nessuno si è collegato da iPhone. Se una delle parti lo ha fatto, viene usato il suo riepilogo gratuito on-device.",
+    "openaiKeyLabel": "Chiave API OpenAI",
+    "openaiConnect": "Salva chiave",
+    "openaiConnected": "Chiave salvata — usata solo per le chiamate senza riepilogo da iPhone",
+    "openaiDisconnect": "Rimuovi chiave",
+    "openaiInvalidKey": "Inserisci una chiave.",
     "companyCode": "Codice aziendale dipendente",
     "companyCodeHint": "Crea un codice di registrazione monouso per un nuovo dipendente.",
     "optionalEmail": "Email dipendente (facoltativa)",
@@ -433,7 +440,12 @@
     "noteSavedTitle": "Nota della chiamata salvata", "noteSavedReview": "La trascrizione è stata salvata automaticamente. Ora puoi controllarla o modificarla.", "noteSavedManual": "La nota della chiamata è stata salvata. Puoi modificarla ancora o aprire tutte le note.",
     "addNoteTitle": "Aggiungi una nota alla chiamata", "addNoteHint": "Nessun parlato è stato trascritto. Prima di uscire puoi aggiungere una nota facoltativa.", "notePlaceholder": "Di cosa avete parlato?", "noteSaveError": "Impossibile salvare la nota. Il testo è ancora qui; riprova.", "noteRequired": "Scrivi una nota prima di salvare.",
     "skipNote": "Salta nota", "viewNotes": "Note chiamate", "saveChanges": "Salva modifiche", "notesTitle": "Note delle chiamate", "notesSubtitle": "Le note di tutti i partecipanti sono raggruppate per chiamata e sincronizzate con HubConnect iOS.", "backToCalls": "Torna alle chiamate", "noNotes": "Non ci sono ancora note di chiamata.",
-    "noteCount": "{{count}} note", "unknownParticipants": "Partecipanti alla chiamata", "unknownAuthor": "Autore sconosciuto", "aiSummary": "Riepilogo AI", "transcript": "Trascrizione", "withNames": "Chiamata con: {{names}}"
+    "noteCount": "{{count}} note", "unknownParticipants": "Partecipanti alla chiamata", "unknownAuthor": "Autore sconosciuto", "aiSummary": "Riepilogo AI", "transcript": "Trascrizione", "withNames": "Chiamata con: {{names}}",
+    "viewConversation": "Visualizza conversazione", "conversationSubtitle": "Il parlato di entrambe le parti unito in base a quando è stato detto realmente.", "conversation": "Conversazione", "noConversationYet": "Nessuna conversazione unita ancora per questa chiamata.",
+    "keyPoints": "Punti Chiave", "actionItems": "Azioni da Fare", "addToJournal": "Aggiungi al Journal",
+    "insightsHint": "Genera un riepilogo AI, punti chiave e azioni per questa conversazione usando la tua chiave OpenAI (vedi Impostazioni).",
+    "generateInsights": "Genera riepilogo AI", "insightsNoKey": "Aggiungi prima la tua chiave API OpenAI in Impostazioni, oppure attendi che un partecipante da iPhone ne generi uno gratis.",
+    "insightsFailed": "Impossibile generare il riepilogo. Controlla la chiave API e riprova."
   },
   "journal": {
     "title": "Journal",

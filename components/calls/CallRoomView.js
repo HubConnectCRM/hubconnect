@@ -7,12 +7,49 @@ import { createClient } from "@/lib/supabase/client";
 import { createCallEngine } from "@/lib/calls/webrtc";
 import {
   getCallRoomParticipants,
+  insertCallTranscriptSegments,
   joinCallRoom,
   leaveCallRoom,
   saveCallNote,
   summarizeCallNote,
   updateCallNote,
 } from "@/app/(app)/calls/actions";
+
+// Web Speech API is locked to one language per recognizer instance and can't
+// auto-detect what's being spoken — matching HubConnect iOS's approach
+// (CallTranscriptionManager), this runs 3 in parallel against the same mic
+// and picks whichever has the highest confidence per turn. NOTE: needs real
+// testing — browsers may not run 3 continuous recognitions concurrently as
+// reliably as iOS's on-device SFSpeechRecognizer sessions do.
+const TRANSCRIPTION_LOCALES = ["tr-TR", "en-US", "it-IT"];
+
+// Web Speech API finalizes whole phrases (its own VAD decides boundaries),
+// unlike iOS's word-level segments — so here each finalized result from any
+// of the 3 recognizers already IS a "turn"; entries whose timestamps land
+// within 2s of each other are assumed to be the 3 recognizers' competing
+// guesses at the SAME utterance, and the highest-confidence one wins.
+function mergeFinalResultsIntoTurns(entries) {
+  const sorted = [...entries].sort((a, b) => a.at - b.at);
+  const turns = [];
+  let group = [];
+  let groupStart = null;
+  function flush() {
+    if (!group.length) return;
+    const best = group.reduce((a, b) => (b.confidence > a.confidence ? b : a));
+    turns.push({ text: best.text, spokenAt: groupStart });
+  }
+  for (const entry of sorted) {
+    if (group.length && entry.at - group[group.length - 1].at > 2_000) {
+      flush();
+      group = [];
+      groupStart = null;
+    }
+    if (groupStart === null) groupStart = entry.at;
+    group.push(entry);
+  }
+  flush();
+  return turns;
+}
 import { Button, Card, Textarea } from "@/components/ui";
 
 const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -93,10 +130,14 @@ export default function CallRoomView({ profile, roomId, kind }) {
   const channelRef = useRef(null);
   const localStreamRef = useRef(null);
   const joinedAtRef = useRef(null);
-  const recognitionRef = useRef(null);
+  const recognitionsRef = useRef([]);
   const recognitionRestartRef = useRef(false);
   const transcriptRef = useRef("");
   const interimTranscriptRef = useRef("");
+  // { text, confidence, at, streamIndex }[] — one entry per finalized phrase
+  // from any of the 3 language recognizers; merged into turns at save time.
+  const finalResultsRef = useRef([]);
+  const interimByStreamRef = useRef(TRANSCRIPTION_LOCALES.map(() => ""));
   const teardownRef = useRef(null);
   const savePromiseRef = useRef(null);
   const knownParticipantsRef = useRef(new Set());
@@ -120,6 +161,11 @@ export default function CallRoomView({ profile, roomId, kind }) {
     if (!note) return null;
     if (savePromiseRef.current) return savePromiseRef.current;
 
+    // Feeds the merged, both-sides conversation view in Call Notes — best
+    // effort, must never block or fail the note save itself.
+    const turns = mergeFinalResultsIntoTurns(finalResultsRef.current);
+    void insertCallTranscriptSegments(roomId, turns).catch(() => {});
+
     const promise = saveCallNote(roomId, note)
       .then((result) => {
         if (result?.error || !result?.note) throw new Error(result?.error || "call_note_save_failed");
@@ -136,60 +182,70 @@ export default function CallRoomView({ profile, roomId, kind }) {
 
   useEffect(() => {
     let cancelled = false;
-    let recognitionRestartTimer = null;
     let teardownPromise = null;
     const negotiationTimers = [];
     const supabase = createClient();
+
+    function updateTranscriptPreview() {
+      const turns = mergeFinalResultsIntoTurns(finalResultsRef.current);
+      transcriptRef.current = turns.map((turn) => turn.text).join(" ");
+      const interim = interimByStreamRef.current.filter(Boolean).join(" ");
+      interimTranscriptRef.current = interim;
+      if (!cancelled) setTranscriptPreview(`${transcriptRef.current} ${interim}`.trim());
+    }
 
     function startSpeechRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition || cancelled) return;
       setSpeechSupported(true);
-
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = "tr-TR";
       recognitionRestartRef.current = true;
-      recognitionRef.current = recognition;
 
-      recognition.onresult = (event) => {
-        let finalText = "";
-        let interimText = "";
-        for (let index = event.resultIndex; index < event.results.length; index += 1) {
-          const part = event.results[index]?.[0]?.transcript?.trim();
-          if (!part) continue;
-          if (event.results[index].isFinal) finalText += `${part} `;
-          else interimText += `${part} `;
-        }
-        if (finalText.trim()) {
-          transcriptRef.current = `${transcriptRef.current} ${finalText}`.replace(/\s+/g, " ").trim();
-        }
-        interimTranscriptRef.current = interimText.trim();
-        if (!cancelled) {
-          setTranscriptPreview(`${transcriptRef.current} ${interimText}`.replace(/\s+/g, " ").trim());
-        }
-      };
+      TRANSCRIPTION_LOCALES.forEach((localeID, streamIndex) => {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = localeID;
+        recognitionsRef.current[streamIndex] = recognition;
 
-      recognition.onerror = (event) => {
-        if (["not-allowed", "service-not-allowed", "audio-capture"].includes(event.error)) {
-          recognitionRestartRef.current = false;
-        }
-      };
-      recognition.onend = () => {
-        if (!recognitionRestartRef.current || cancelled) return;
-        recognitionRestartTimer = setTimeout(() => {
-          try {
-            recognition.start();
-          } catch {}
-        }, 250);
-      };
+        recognition.onresult = (event) => {
+          let interimText = "";
+          for (let index = event.resultIndex; index < event.results.length; index += 1) {
+            const result = event.results[index];
+            const alternative = result?.[0];
+            const part = alternative?.transcript?.trim();
+            if (!part) continue;
+            if (result.isFinal) {
+              finalResultsRef.current.push({ text: part, confidence: alternative.confidence || 0, at: Date.now(), streamIndex });
+            } else {
+              interimText += `${part} `;
+            }
+          }
+          interimByStreamRef.current[streamIndex] = interimText.trim();
+          updateTranscriptPreview();
+        };
 
-      try {
-        recognition.start();
-      } catch {
-        recognitionRestartRef.current = false;
-      }
+        recognition.onerror = (event) => {
+          if (["not-allowed", "service-not-allowed", "audio-capture"].includes(event.error)) {
+            recognitionRestartRef.current = false;
+          }
+        };
+        recognition.onend = () => {
+          if (!recognitionRestartRef.current || cancelled) return;
+          const timer = setTimeout(() => {
+            try {
+              recognition.start();
+            } catch {}
+          }, 250);
+          negotiationTimers.push(timer);
+        };
+
+        try {
+          recognition.start();
+        } catch {
+          // This language's model may not be available on this browser/OS —
+          // the other two locales still run independently.
+        }
+      });
     }
 
     async function start() {
@@ -250,7 +306,7 @@ export default function CallRoomView({ profile, roomId, kind }) {
           if (connectionState === "connected") {
             setCallStartedAt((current) => current || Date.now());
             setStatus("in-call");
-            if (!recognitionRef.current) startSpeechRecognition();
+            if (!recognitionsRef.current.length) startSpeechRecognition();
           } else if (["failed", "closed"].includes(connectionState)) {
             setStatus((current) => current === "ending" ? current : "connecting");
           }
@@ -384,11 +440,12 @@ export default function CallRoomView({ profile, roomId, kind }) {
       if (teardownPromise) return teardownPromise;
       teardownPromise = (async () => {
         recognitionRestartRef.current = false;
-        if (recognitionRestartTimer) clearTimeout(recognitionRestartTimer);
         negotiationTimers.forEach(clearTimeout);
-        try {
-          recognitionRef.current?.stop();
-        } catch {}
+        for (const recognition of recognitionsRef.current) {
+          try {
+            recognition?.stop();
+          } catch {}
+        }
         if (notifyPeer) {
           await channelRef.current?.send({
             type: "broadcast",

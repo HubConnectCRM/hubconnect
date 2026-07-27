@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireProfile } from "@/lib/auth";
+import { decodeOpenAIKey, requestConversationInsights } from "@/lib/openai";
 
 function clean(value) {
   const result = (value ?? "").toString().trim();
@@ -334,4 +335,79 @@ export async function saveCallOutcome(prevState, formData) {
   revalidatePath("/contact-center");
   revalidatePath(`/contacts/${contactId}`);
   return { ok: Date.now() };
+}
+
+// ---- Merged conversation transcript (shared with HubConnect iOS) ------
+
+// Mirrors HubConnect iOS's CallTranscriptionManager.buildTurns() upload —
+// each side only ever transcribes its own voice locally, tagged with when it
+// was actually spoken, so both participants' turns can be interleaved by
+// real time into one conversation instead of two separate one-sided notes.
+export async function insertCallTranscriptSegments(roomId, turns) {
+  const { supabase, user } = await requireProfile();
+  if (!roomId || !Array.isArray(turns) || !turns.length) return { ok: true };
+  const rows = turns
+    .filter((turn) => turn?.text)
+    .map((turn) => ({
+      room_id: roomId,
+      speaker_id: user.id,
+      text: normalizeTranscript(turn.text),
+      spoken_at: new Date(turn.spokenAt).toISOString(),
+    }));
+  if (!rows.length) return { ok: true };
+  const { error } = await supabase.from("call_transcript_segments").insert(rows);
+  if (error) return { error: error.message };
+  return { ok: true };
+}
+
+export async function getCallTranscriptSegments(roomId) {
+  const { supabase } = await requireProfile();
+  const { data } = await supabase
+    .from("call_transcript_segments")
+    .select("id, speaker_id, text, spoken_at, speaker:profiles(full_name, email)")
+    .eq("room_id", roomId)
+    .order("spoken_at", { ascending: true });
+  return data || [];
+}
+
+export async function getConversationInsights(roomId) {
+  const { supabase } = await requireProfile();
+  const { data } = await supabase
+    .from("call_conversation_insights")
+    .select("summary, key_points, action_items, generated_platform")
+    .eq("room_id", roomId)
+    .maybeSingle();
+  return data || null;
+}
+
+// Only ever called when getConversationInsights() came back empty — someone
+// (possibly on iOS, for free) may have generated this already between page
+// load and the button click, so this re-checks before spending the viewing
+// user's own OpenAI quota.
+export async function generateConversationInsights(roomId, transcript) {
+  const { supabase, user, profile } = await requireProfile();
+  const { data: existing } = await supabase
+    .from("call_conversation_insights")
+    .select("room_id")
+    .eq("room_id", roomId)
+    .maybeSingle();
+  if (existing) return { error: "already_generated" };
+
+  const apiKey = decodeOpenAIKey(profile.openai_api_key_enc);
+  if (!apiKey) return { error: "no_api_key" };
+
+  const insights = await requestConversationInsights(apiKey, transcript);
+  if (!insights) return { error: "generation_failed" };
+
+  const { error } = await supabase.from("call_conversation_insights").insert({
+    room_id: roomId,
+    summary: insights.summary,
+    key_points: insights.keyPoints,
+    action_items: insights.actionItems,
+    generated_by: user.id,
+    generated_platform: "web",
+  });
+  if (error) return { error: error.message };
+  revalidatePath("/calls/notes");
+  return { ok: true, insights };
 }

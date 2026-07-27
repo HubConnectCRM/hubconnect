@@ -12,6 +12,8 @@ import {
   addTeamMember,
   connectMailbos,
   disconnectMailbos,
+  connectOpenAI,
+  disconnectOpenAI,
   createCompanyInvite,
   deleteTeamMember,
 } from "@/app/(app)/settings/actions";
@@ -21,7 +23,7 @@ import {
 // (singular) is no longer a valid value there, only "events" is.
 const ROLES = ["admin", "sales", "events"];
 
-export default function SettingsView({ profile, users, isAdmin, mailbosSenderEmail, mailbosConnected }) {
+export default function SettingsView({ profile, users, isAdmin, mailbosSenderEmail, mailbosConnected, openaiKeySet }) {
   const { t, i18n } = useTranslation();
   const [state, action, pending] = useActionState(updateMyProfile, {});
 
@@ -63,6 +65,11 @@ export default function SettingsView({ profile, users, isAdmin, mailbosSenderEma
       <Card className="mb-6 p-6">
         <h2 className="mb-4 text-lg font-semibold">{t("settings.mailbosTitle")}</h2>
         <MailbosConnect senderEmail={mailbosSenderEmail} initiallyConnected={mailbosConnected} />
+      </Card>
+
+      <Card className="mb-6 p-6">
+        <h2 className="mb-4 text-lg font-semibold">{t("settings.openaiTitle")}</h2>
+        <OpenAIConnect initiallyConnected={openaiKeySet} />
       </Card>
 
       {isAdmin && (
@@ -189,6 +196,49 @@ function MailbosConnect({ senderEmail, initiallyConnected = false }) {
       )}
       {connectState?.error && !["invalid_key", "invalid_key_format"].includes(connectState.error) && (
         <p className="mt-2 text-sm text-red-700">{t("settings.mailbosUnreachable")}</p>
+      )}
+    </div>
+  );
+}
+
+function OpenAIConnect({ initiallyConnected = false }) {
+  const { t } = useTranslation();
+  const [connectState, connectAction, connectPending] = useActionState(connectOpenAI, {});
+  const [disconnectPending, startDisconnect] = useTransition();
+  const connected = !!(connectState?.ok || (initiallyConnected && !connectState?.error));
+
+  if (connected) {
+    return (
+      <div>
+        <div className="mb-3 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-800">
+          ✓ {t("settings.openaiConnected")}
+        </div>
+        <Button
+          variant="secondary"
+          disabled={disconnectPending}
+          onClick={() => startDisconnect(() => disconnectOpenAI())}
+        >
+          {t("settings.openaiDisconnect")}
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <p className="mb-3 text-sm text-[var(--muted)]">{t("settings.openaiHint")}</p>
+      <form action={connectAction} className="flex flex-wrap items-end gap-3 max-w-lg">
+        <div className="flex-1 min-w-64">
+          <Field label={t("settings.openaiKeyLabel")}>
+            <Input name="api_key" type="password" placeholder="sk-..." required />
+          </Field>
+        </div>
+        <Button type="submit" disabled={connectPending}>
+          {connectPending ? t("common.saving") : t("settings.openaiConnect")}
+        </Button>
+      </form>
+      {connectState?.error === "invalid_key" && (
+        <p className="mt-2 text-sm text-red-700">{t("settings.openaiInvalidKey")}</p>
       )}
     </div>
   );

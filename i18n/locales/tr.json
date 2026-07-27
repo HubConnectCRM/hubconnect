@@ -402,6 +402,13 @@
     "mailbosDisconnect": "Bağlantıyı kes",
     "mailbosInvalidKey": "Geçersiz anahtar.",
     "mailbosUnreachable": "MailBos'a ulaşılamadı. Daha sonra tekrar dene.",
+    "openaiTitle": "OpenAI — Görüşme özetleri",
+    "openaiHint": "İsteğe bağlı: hiç kimse iPhone'dan katılmadığı görüşmeler için AI özet/önemli nokta/aksiyon maddesi üretmek üzere kendi OpenAI API anahtarını ekle. Taraflardan biri iPhone'daysa onun ücretsiz cihaz-üstü özeti kullanılır.",
+    "openaiKeyLabel": "OpenAI API anahtarı",
+    "openaiConnect": "Anahtarı kaydet",
+    "openaiConnected": "Anahtar kaydedildi — sadece iPhone özeti olmayan görüşmelerde kullanılır",
+    "openaiDisconnect": "Anahtarı kaldır",
+    "openaiInvalidKey": "Lütfen bir anahtar gir.",
     "companyCode": "Çalışan şirket kodu",
     "companyCodeHint": "Yeni çalışan için tek kullanımlık kayıt kodu oluştur.",
     "optionalEmail": "Çalışan e-postası (isteğe bağlı)",
@@ -433,7 +440,12 @@
     "noteSavedTitle": "Görüşme notu kaydedildi", "noteSavedReview": "Transkriptin otomatik olarak kaydedildi. Şimdi kontrol edebilir veya düzenleyebilirsin.", "noteSavedManual": "Görüşme notun kaydedildi. Tekrar düzenleyebilir veya tüm görüşme notlarını açabilirsin.",
     "addNoteTitle": "Görüşme notu ekle", "addNoteHint": "Konuşma algılanmadı. Çıkmadan önce isteğe bağlı bir not ekleyebilirsin.", "notePlaceholder": "Görüşmede neler konuşuldu?", "noteSaveError": "Görüşme notu kaydedilemedi. Metnin burada duruyor; tekrar dene.", "noteRequired": "Kaydetmeden önce bir not yaz.",
     "skipNote": "Not eklemeden çık", "viewNotes": "Görüşme Notları", "saveChanges": "Değişiklikleri kaydet", "notesTitle": "Görüşme Notları", "notesSubtitle": "Tüm katılımcıların notları görüşme bazında gruplanır ve HubConnect iOS ile senkron çalışır.", "backToCalls": "Görüşmelere dön", "noNotes": "Henüz görüşme notu yok.",
-    "noteCount": "{{count}} not", "unknownParticipants": "Görüşme katılımcıları", "unknownAuthor": "Bilinmeyen kullanıcı", "aiSummary": "AI özeti", "transcript": "Transkript", "withNames": "Görüşülen kişiler: {{names}}"
+    "noteCount": "{{count}} not", "unknownParticipants": "Görüşme katılımcıları", "unknownAuthor": "Bilinmeyen kullanıcı", "aiSummary": "AI özeti", "transcript": "Transkript", "withNames": "Görüşülen kişiler: {{names}}",
+    "viewConversation": "Konuşmayı görüntüle", "conversationSubtitle": "İki tarafın konuşması gerçek söylenme zamanına göre birleştirildi.", "conversation": "Konuşma", "noConversationYet": "Bu görüşme için birleşik konuşma henüz yok.",
+    "keyPoints": "Önemli Noktalar", "actionItems": "Aksiyon Maddeleri", "addToJournal": "Journal'a ekle",
+    "insightsHint": "Bu konuşma için kendi OpenAI anahtarınla (Ayarlar'da) AI özeti, önemli noktalar ve aksiyon maddeleri oluştur.",
+    "generateInsights": "AI özeti oluştur", "insightsNoKey": "Önce Ayarlar'dan OpenAI API anahtarını ekle, ya da iPhone'dan katılan birinin ücretsiz özet oluşturmasını bekle.",
+    "insightsFailed": "Özet oluşturulamadı. API anahtarını kontrol edip tekrar dene."
   },
   "journal": {
     "title": "Journal",

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireProfile } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { encodeMailbosKey, pingMailbos } from "@/lib/mailbos";
+import { encodeOpenAIKey } from "@/lib/openai";
 
 function clean(v) {
   const s = (v ?? "").toString().trim();
@@ -150,5 +151,27 @@ export async function disconnectMailbos() {
   revalidatePath("/settings");
   revalidatePath("/mail");
   revalidatePath("/contact-center");
+  return { ok: true };
+}
+
+// Opt-in, per-user key for the merged call-conversation AI summary — only
+// used as a fallback when nobody's iPhone already generated one for free
+// (see app/(app)/calls/actions.js's generateConversationInsights). Not the
+// same as the company-wide OPENAI_API_KEY env var the single-person call
+// note summary already looks for (currently unset in production).
+export async function connectOpenAI(prevState, formData) {
+  const { supabase, user } = await requireProfile();
+  const key = clean(formData.get("api_key"));
+  if (!key) return { error: "invalid_key" };
+  const { error } = await supabase.from("profiles").update({ openai_api_key_enc: encodeOpenAIKey(key) }).eq("id", user.id);
+  if (error) return { error: error.message };
+  revalidatePath("/settings");
+  return { ok: true };
+}
+
+export async function disconnectOpenAI() {
+  const { supabase, user } = await requireProfile();
+  await supabase.from("profiles").update({ openai_api_key_enc: null }).eq("id", user.id);
+  revalidatePath("/settings");
   return { ok: true };
 }
