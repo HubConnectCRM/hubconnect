@@ -200,13 +200,15 @@ export async function updateLeadPerson(prevState, formData) {
   const { error: contactError } = await supabase.from("contacts").update(contactPatch).eq("id", contactId);
   if (contactError) return { error: contactError.message };
 
-  // Fetched before the update so we can tell whether feedback/next-step actually
-  // changed (mirrors HubConnect iOS's updateEventLead) — only a real change should
-  // create a Journal entry, not every unrelated field edit on this same form.
-  const { data: previousLead } = await supabase.from("lead_contacts").select("notes, next_step").eq("id", leadContactId).maybeSingle();
+  // Fetched before the update so we can tell whether feedback/next-step/price
+  // actually changed (mirrors HubConnect iOS's updateEventLead) — only a real
+  // change should create a Journal entry, not every unrelated field edit on
+  // this same form.
+  const { data: previousLead } = await supabase.from("lead_contacts").select("notes, next_step, estimated_value").eq("id", leadContactId).maybeSingle();
 
   const newNotes = clean(formData.get("lead_notes"));
   const newNextStep = clean(formData.get("next_step"));
+  const newEstimatedValue = Number(clean(formData.get("estimated_value")) || 0);
 
   const { error: leadError } = await supabase.from("lead_contacts").update({
     group_id: clean(formData.get("group_id")) || null,
@@ -216,17 +218,25 @@ export async function updateLeadPerson(prevState, formData) {
     probability: clean(formData.get("probability")) || "T50",
     reconnect_at: clean(formData.get("reconnect_at")),
     next_step: newNextStep,
-    estimated_value: Number(clean(formData.get("estimated_value")) || 0),
+    estimated_value: newEstimatedValue,
     owner_id: ownerId || user.id,
   }).eq("id", leadContactId);
   if (leadError) return { error: leadError.message };
 
   const feedbackChanged = (previousLead?.notes || null) !== newNotes;
   const nextStepChanged = (previousLead?.next_step || null) !== newNextStep;
+  const priceChanged = Number(previousLead?.estimated_value || 0) !== newEstimatedValue;
+  const fullName = [first_name, last_name].filter(Boolean).join(" ");
   if ((feedbackChanged || nextStepChanged) && (newNotes || newNextStep)) {
-    const fullName = [first_name, last_name].filter(Boolean).join(" ");
     const noteBody = [newNotes, newNextStep].filter(Boolean).join(" · Next step: ");
     await supabase.from("journal_entries").insert({ owner_id: user.id, kind: "lead_update", title: fullName, note: noteBody, linked_contact_id: contactId });
+  }
+  if (priceChanged) {
+    const eur = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(newEstimatedValue);
+    await supabase.from("journal_entries").insert({
+      owner_id: user.id, kind: "lead_update", title: fullName,
+      note: `Fiyat güncellendi: ${eur}`, linked_contact_id: contactId,
+    });
   }
 
   revalidatePath(`/leads/${leadFileId}`);
@@ -245,6 +255,13 @@ export async function createOpportunityFromLeadContact(prevState, formData) {
   const companyName = clean(formData.get("company_name"));
   const stage = clean(formData.get("stage")) || "prospect";
   if (!leadFileId || !contactId || (!companyId && !companyName)) return { error: "missing" };
+
+  // The lead's own Estimated Value (lead_contacts.estimated_value) is the
+  // only price ever entered for this lead — it must carry over as the
+  // deal's offer_value, otherwise every deal born from a lead conversion
+  // shows €0 revenue everywhere that reads offer_value (Sales pipeline, and
+  // the Cost/Bilancino sheet's auto-synced RICAVI rows).
+  const offerValue = Number(clean(formData.get("estimated_value")) || 0);
 
   let finalCompanyId = companyId;
   if (!finalCompanyId && companyName) {
@@ -271,6 +288,7 @@ export async function createOpportunityFromLeadContact(prevState, formData) {
         owner_id: clean(formData.get("owner_id")) || user.id,
         stage,
         po_won: stage === "won",
+        offer_value: offerValue,
         notes: clean(formData.get("notes")),
         created_by: user.id,
       })
@@ -279,7 +297,7 @@ export async function createOpportunityFromLeadContact(prevState, formData) {
     if (dealError) return { error: dealError.message };
     dealId = deal.id;
   } else {
-    const patch = { stage };
+    const patch = { stage, offer_value: offerValue };
     if (stage === "won") patch.po_won = true;
     await supabase.from("deals").update(patch).eq("id", dealId);
   }

@@ -248,6 +248,7 @@ function LeadPersonRow({ row, leadFileId, groups, owners, companies, pipelineEve
               <input type="hidden" name="owner_id" value={ownerId} />
               <input type="hidden" name="rsvp" value={row.rsvp || ""} />
               <input type="hidden" name="stage" value="prospect" />
+              <input type="hidden" name="estimated_value" value={row.estimated_value || 0} />
               <button type="submit" disabled={oppPending || !(c.company?.id || c.company?.name || companyName)} className="rounded-lg border border-[var(--border)] px-2 py-1 text-xs hover:border-[var(--brand)]">Opportunity</button>
             </form>
             <form action={oppAction}>
@@ -258,6 +259,7 @@ function LeadPersonRow({ row, leadFileId, groups, owners, companies, pipelineEve
               <input type="hidden" name="owner_id" value={ownerId} />
               <input type="hidden" name="rsvp" value={row.rsvp || "yes"} />
               <input type="hidden" name="stage" value="won" />
+              <input type="hidden" name="estimated_value" value={row.estimated_value || 0} />
               <button type="submit" disabled={oppPending || !(c.company?.id || c.company?.name || companyName)} className="rounded-lg bg-green-600 px-2 py-1 text-xs font-medium text-white hover:bg-green-700">Mark won</button>
             </form>
           </div> : <span className="text-xs text-[var(--muted)]">View only</span>}

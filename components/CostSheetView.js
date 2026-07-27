@@ -3,7 +3,7 @@
 import { useActionState, useMemo, useTransition } from "react";
 import { useTranslation } from "react-i18next";
 import { Badge, Button, Card, EmptyState, Field, Input, PageHeader, Textarea } from "@/components/ui";
-import { addCostItem, deleteCostItem, toggleCostItemPaid } from "@/app/(app)/cost/actions";
+import { addCostItem, addRevenueItem, deleteCostItem, deleteRevenueItem, toggleCostItemPaid } from "@/app/(app)/cost/actions";
 
 const VAT_RATE = 0.22;
 
@@ -12,21 +12,27 @@ function euro(value) {
 }
 
 // Mirrors the Bilancino Excel template exactly: free-text cost line items
-// (hotel, venue, catering, anything) on one side, revenue on the other. The
-// revenue side is never entered here — it's the event/lead file's own won
-// deals (Sales' single source of truth), so a sponsor is never typed twice.
-export default function CostSheetView({ scopeName, eventId, leadFileId, items, deals, canManage }) {
+// (hotel, venue, catering, anything) on one side, revenue on the other.
+// Revenue has two sources merged together: won deals for this event/lead
+// file (Sales' own data, read-only here — one source of truth, never typed
+// twice) PLUS manually-added rows for a sponsor payment that was never
+// tracked as a deal.
+export default function CostSheetView({ scopeName, eventId, leadFileId, items, revenueItems, deals, canManage }) {
   const { t } = useTranslation();
 
-  const revenueRows = useMemo(
-    () =>
-      deals.map((deal) => {
-        const imponibile = Number(deal.offer_value || 0);
-        const iva = imponibile * VAT_RATE;
-        return { id: deal.id, name: deal.company?.name || deal.company_name || "—", imponibile, iva, totale: imponibile + iva };
-      }),
-    [deals]
-  );
+  const revenueRows = useMemo(() => {
+    const fromDeals = deals.map((deal) => {
+      const imponibile = Number(deal.offer_value || 0);
+      const iva = imponibile * VAT_RATE;
+      return { id: deal.id, source: "deal", name: deal.company?.name || deal.company_name || "—", imponibile, iva, totale: imponibile + iva };
+    });
+    const manual = revenueItems.map((item) => ({
+      id: item.id, source: "manual", name: item.description,
+      imponibile: Number(item.imponibile || 0), iva: Number(item.iva || 0),
+      totale: Number(item.imponibile || 0) + Number(item.iva || 0),
+    }));
+    return [...fromDeals, ...manual];
+  }, [deals, revenueItems]);
 
   const costTotals = items.reduce(
     (acc, item) => ({
@@ -53,7 +59,7 @@ export default function CostSheetView({ scopeName, eventId, leadFileId, items, d
 
       <div className="mb-6 grid gap-4 md:grid-cols-2">
         <CostTable items={items} totals={costTotals} canManage={canManage} eventId={eventId} leadFileId={leadFileId} />
-        <RevenueTable rows={revenueRows} totals={revenueTotals} />
+        <RevenueTable rows={revenueRows} totals={revenueTotals} canManage={canManage} eventId={eventId} leadFileId={leadFileId} />
       </div>
 
       <Card className="p-5">
@@ -65,10 +71,16 @@ export default function CostSheetView({ scopeName, eventId, leadFileId, items, d
       </Card>
 
       {canManage && (
-        <Card className="mt-6 p-5">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">{t("cost.addItem")}</h2>
-          <AddCostItemForm eventId={eventId} leadFileId={leadFileId} />
-        </Card>
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <Card className="p-5">
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">{t("cost.addItem")}</h2>
+            <AddCostItemForm eventId={eventId} leadFileId={leadFileId} />
+          </Card>
+          <Card className="p-5">
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">{t("cost.addRevenue")}</h2>
+            <AddRevenueItemForm eventId={eventId} leadFileId={leadFileId} />
+          </Card>
+        </div>
       )}
     </div>
   );
@@ -148,8 +160,9 @@ function CostTable({ items, totals, canManage, eventId, leadFileId }) {
   );
 }
 
-function RevenueTable({ rows, totals }) {
+function RevenueTable({ rows, totals, canManage, eventId, leadFileId }) {
   const { t } = useTranslation();
+  const [pending, startTransition] = useTransition();
   return (
     <Card className="overflow-hidden">
       <div className="border-b border-[var(--border)] bg-[#002060]/90 px-4 py-2.5">
@@ -160,15 +173,30 @@ function RevenueTable({ rows, totals }) {
       ) : (
         <table className="w-full text-sm">
           <thead className="text-left text-xs text-[var(--muted)]">
-            <tr><th className="px-4 py-2 font-medium">{t("cost.sponsor")}</th><th className="px-3 py-2 font-medium">{t("cost.imponibile")}</th><th className="px-3 py-2 font-medium">{t("cost.iva")}</th><th className="px-3 py-2 font-medium">{t("cost.total")}</th></tr>
+            <tr><th className="px-4 py-2 font-medium">{t("cost.sponsor")}</th><th className="px-3 py-2 font-medium">{t("cost.imponibile")}</th><th className="px-3 py-2 font-medium">{t("cost.iva")}</th><th className="px-3 py-2 font-medium">{t("cost.total")}</th><th className="px-3 py-2" /></tr>
           </thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.id} className="border-t border-[var(--border)]">
-                <td className="px-4 py-2">{row.name}</td>
+                <td className="px-4 py-2">
+                  {row.name}
+                  {row.source === "manual" && <Badge color="blue">{t("cost.manual")}</Badge>}
+                </td>
                 <td className="px-3 py-2 whitespace-nowrap">{euro(row.imponibile)}</td>
                 <td className="px-3 py-2 whitespace-nowrap">{euro(row.iva)}</td>
                 <td className="px-3 py-2 whitespace-nowrap font-semibold">{euro(row.totale)}</td>
+                <td className="px-3 py-2 text-right">
+                  {canManage && row.source === "manual" && (
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() => { if (confirm(t("cost.deleteConfirm"))) startTransition(() => deleteRevenueItem(row.id, eventId, leadFileId)); }}
+                      className="text-xs text-red-500 hover:underline"
+                    >
+                      {t("common.delete")}
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -178,6 +206,7 @@ function RevenueTable({ rows, totals }) {
               <td className="px-3 py-2">{euro(totals.imponibile)}</td>
               <td className="px-3 py-2">{euro(totals.iva)}</td>
               <td className="px-3 py-2">{euro(totals.totale)}</td>
+              <td />
             </tr>
           </tfoot>
         </table>
@@ -206,6 +235,31 @@ function AddCostItemForm({ eventId, leadFileId }) {
       </Field>
       <Field label={t("cost.receipt")} className="md:col-span-2">
         <Input name="receipt" type="file" accept="image/*,application/pdf" />
+      </Field>
+      <div className="flex items-center gap-3 md:col-span-2">
+        <Button type="submit" disabled={pending}>{pending ? t("common.saving") : t("common.add")}</Button>
+        {state?.error && <span className="text-sm text-red-500">{state.error}</span>}
+      </div>
+    </form>
+  );
+}
+
+function AddRevenueItemForm({ eventId, leadFileId }) {
+  const { t } = useTranslation();
+  const [state, action, pending] = useActionState(addRevenueItem, {});
+
+  return (
+    <form action={action} className="grid gap-4 md:grid-cols-2">
+      <input type="hidden" name="event_id" value={eventId || ""} />
+      <input type="hidden" name="lead_file_id" value={leadFileId || ""} />
+      <Field label={t("cost.sponsor")} className="md:col-span-2">
+        <Input name="description" required placeholder={t("cost.sponsorPlaceholder")} />
+      </Field>
+      <Field label={t("cost.imponibile")}>
+        <Input name="imponibile" type="number" step="0.01" min="0" defaultValue="0" required />
+      </Field>
+      <Field label={t("cost.iva")} hint={t("cost.ivaHint")}>
+        <Input name="iva" type="number" step="0.01" min="0" defaultValue="0" />
       </Field>
       <div className="flex items-center gap-3 md:col-span-2">
         <Button type="submit" disabled={pending}>{pending ? t("common.saving") : t("common.add")}</Button>

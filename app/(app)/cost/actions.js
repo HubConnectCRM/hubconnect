@@ -70,3 +70,34 @@ export async function toggleCostItemPaid(id, paid, eventId, leadFileId) {
   revalidateScope(eventId, leadFileId);
   return { ok: true };
 }
+
+// Manual RICAVI rows, alongside the ones auto-synced from won deals — for a
+// sponsor payment that was never tracked as a Sales deal.
+export async function addRevenueItem(prevState, formData) {
+  const { supabase, profile } = await requireProfile();
+  if (!canManageSales(profile)) return salesDenied();
+
+  const eventId = clean(formData.get("event_id"));
+  const leadFileId = clean(formData.get("lead_file_id"));
+  if (!eventId && !leadFileId) return { error: "scope_required" };
+
+  const description = clean(formData.get("description"));
+  if (!description) return { error: "description_required" };
+
+  const imponibile = Number(clean(formData.get("imponibile")) || 0);
+  const iva = Number(clean(formData.get("iva")) || 0);
+
+  const { error } = await supabase.from("revenue_items").insert({ event_id: eventId, lead_file_id: leadFileId, description, imponibile, iva });
+  if (error) return { error: error.message };
+
+  revalidateScope(eventId, leadFileId);
+  return { ok: Date.now() };
+}
+
+export async function deleteRevenueItem(id, eventId, leadFileId) {
+  const { supabase, profile } = await requireProfile();
+  if (!canManageSales(profile)) return salesDenied();
+  await supabase.from("revenue_items").delete().eq("id", id);
+  revalidateScope(eventId, leadFileId);
+  return { ok: true };
+}

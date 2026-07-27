@@ -19,12 +19,17 @@ export async function GET(request) {
 
   const { supabase } = await requireProfile();
 
-  const [scopeResult, itemsResult, dealsResult] = await Promise.all([
+  const [scopeResult, itemsResult, revenueItemsResult, dealsResult] = await Promise.all([
     eventId
       ? supabase.from("events").select("name").eq("id", eventId).single()
       : supabase.from("lead_files").select("name").eq("id", leadFileId).single(),
     supabase
       .from("cost_items")
+      .select("description, imponibile, iva")
+      .eq(eventId ? "event_id" : "lead_file_id", eventId || leadFileId)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("revenue_items")
       .select("description, imponibile, iva")
       .eq(eventId ? "event_id" : "lead_file_id", eventId || leadFileId)
       .order("created_at", { ascending: true }),
@@ -35,7 +40,12 @@ export async function GET(request) {
 
   const scopeName = scopeResult.data?.name || "Bilancino";
   const costs = itemsResult.data || [];
-  const revenues = (dealsResult.data || []).map((deal) => ({ name: deal.company?.name || deal.company_name || "—", imponibile: Number(deal.offer_value || 0) }));
+  // Deal-derived rows use the 22% VAT formula (matches the original
+  // template); manual rows use whatever IVA the user actually entered.
+  const revenues = [
+    ...(dealsResult.data || []).map((deal) => ({ name: deal.company?.name || deal.company_name || "—", imponibile: Number(deal.offer_value || 0), manualIva: null })),
+    ...(revenueItemsResult.data || []).map((item) => ({ name: item.description, imponibile: Number(item.imponibile || 0), manualIva: Number(item.iva || 0) })),
+  ];
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "HubConnect";
@@ -87,7 +97,7 @@ export async function GET(request) {
     const row = dataStartRow + index;
     sheet.getCell(`F${row}`).value = row_.name;
     sheet.getCell(`G${row}`).value = row_.imponibile;
-    sheet.getCell(`H${row}`).value = { formula: `PRODUCT(G${row}*${VAT_RATE})` };
+    sheet.getCell(`H${row}`).value = row_.manualIva === null ? { formula: `PRODUCT(G${row}*${VAT_RATE})` } : row_.manualIva;
     sheet.getCell(`I${row}`).value = { formula: `SUM(G${row},H${row})` };
     for (const col of ["G", "H", "I"]) sheet.getCell(`${col}${row}`).numFmt = EUR_FORMAT;
   });

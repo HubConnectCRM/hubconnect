@@ -18,13 +18,18 @@ export default async function CostPage({ searchParams }) {
     return <CostPickerView events={events || []} leadFiles={leadFiles || []} />;
   }
 
-  const [scopeResult, itemsResult, dealsResult] = await Promise.all([
+  const [scopeResult, itemsResult, revenueItemsResult, dealsResult] = await Promise.all([
     eventId
       ? supabase.from("events").select("id, name").eq("id", eventId).single()
       : supabase.from("lead_files").select("id, name").eq("id", leadFileId).single(),
     supabase
       .from("cost_items")
       .select("id, description, imponibile, iva, paid, receipt_path, created_at, created_by:profiles(full_name, email)")
+      .eq(eventId ? "event_id" : "lead_file_id", eventId || leadFileId)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("revenue_items")
+      .select("id, description, imponibile, iva, created_at, created_by:profiles(full_name, email)")
       .eq(eventId ? "event_id" : "lead_file_id", eventId || leadFileId)
       .order("created_at", { ascending: true }),
     eventId
@@ -51,6 +56,7 @@ export default async function CostPage({ searchParams }) {
       eventId={eventId || null}
       leadFileId={leadFileId || null}
       items={items}
+      revenueItems={revenueItemsResult.data || []}
       deals={dealsResult.data || []}
       canManage={canManage}
     />
