@@ -5,8 +5,6 @@ import { useTranslation } from "react-i18next";
 import { Badge, Button, Card, EmptyState, Field, Input, PageHeader, Textarea } from "@/components/ui";
 import { addCostItem, addRevenueItem, deleteCostItem, deleteRevenueItem, toggleCostItemPaid } from "@/app/(app)/cost/actions";
 
-const VAT_RATE = 0.22;
-
 function euro(value) {
   return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(value || 0);
 }
@@ -23,7 +21,10 @@ export default function CostSheetView({ scopeName, eventId, leadFileId, items, r
   const revenueRows = useMemo(() => {
     const fromDeals = deals.map((deal) => {
       const imponibile = Number(deal.offer_value || 0);
-      const iva = imponibile * VAT_RATE;
+      // deal.iva is whatever VAT rate/amount was actually chosen for this
+      // lead when it was won (see leads/actions.js) — no more assuming a
+      // fixed rate for every deal.
+      const iva = Number(deal.iva || 0);
       return { id: deal.id, source: "deal", name: deal.company?.name || deal.company_name || "—", imponibile, iva, totale: imponibile + iva };
     });
     const manual = revenueItems.map((item) => ({

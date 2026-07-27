@@ -224,6 +224,8 @@ function LeadPersonRow({ row, leadFileId, groups, owners, companies, pipelineEve
   const ownerId = c.owner_id || "";
   const probabilityValue = (row.probability || "T50").toUpperCase();
   const [probabilityDraft, setProbabilityDraft] = useState(probabilityValue);
+  const [estimatedValueDraft, setEstimatedValueDraft] = useState(row.estimated_value || 0);
+  const [vatRateDraft, setVatRateDraft] = useState(row.vat_rate ?? 20);
   const statusColor = row.status === "won" ? "green" : ["lost", "failed"].includes(row.status) ? "red" : ["opportunity", "postponed"].includes(row.status) ? "amber" : row.rsvp === "no" ? "red" : row.rsvp === "yes" ? "green" : "gray";
   const [pipelinePending, startPipelineTransition] = useTransition();
 
@@ -234,7 +236,7 @@ function LeadPersonRow({ row, leadFileId, groups, owners, companies, pipelineEve
         <td className="px-4 py-3 text-[var(--muted)]">{c.company?.name || "—"}</td>
         <td className="px-4 py-3 text-[var(--muted)]">{c.job_title || "—"}</td>
         <td className="px-4 py-3 text-[var(--muted)]">{c.email || "—"}</td>
-        <td className="px-4 py-3"><Badge color={probabilityValue === "T90" ? "green" : probabilityValue === "T70" ? "amber" : "blue"}>{probabilityValue}</Badge></td>
+        <td className="px-4 py-3">{row.status === "won" ? <Badge color="green">Won</Badge> : <Badge color={probabilityValue === "T90" ? "green" : probabilityValue === "T70" ? "amber" : "blue"}>{probabilityValue}</Badge>}</td>
         <td className="px-4 py-3 text-xs text-[var(--muted)]">{row.reconnect_at ? new Date(row.reconnect_at).toLocaleDateString() : "—"}</td>
         <td className="px-4 py-3"><Badge color={statusColor}>{row.status || row.rsvp || "lead"}</Badge></td>
         <td className="px-4 py-3 text-right">
@@ -249,6 +251,7 @@ function LeadPersonRow({ row, leadFileId, groups, owners, companies, pipelineEve
               <input type="hidden" name="rsvp" value={row.rsvp || ""} />
               <input type="hidden" name="stage" value="prospect" />
               <input type="hidden" name="estimated_value" value={row.estimated_value || 0} />
+              <input type="hidden" name="vat_rate" value={row.vat_rate ?? 20} />
               <button type="submit" disabled={oppPending || !(c.company?.id || c.company?.name || companyName)} className="rounded-lg border border-[var(--border)] px-2 py-1 text-xs hover:border-[var(--brand)]">Opportunity</button>
             </form>
             <form action={oppAction}>
@@ -260,6 +263,7 @@ function LeadPersonRow({ row, leadFileId, groups, owners, companies, pipelineEve
               <input type="hidden" name="rsvp" value={row.rsvp || "yes"} />
               <input type="hidden" name="stage" value="won" />
               <input type="hidden" name="estimated_value" value={row.estimated_value || 0} />
+              <input type="hidden" name="vat_rate" value={row.vat_rate ?? 20} />
               <button type="submit" disabled={oppPending || !(c.company?.id || c.company?.name || companyName)} className="rounded-lg bg-green-600 px-2 py-1 text-xs font-medium text-white hover:bg-green-700">Mark won</button>
             </form>
           </div> : <span className="text-xs text-[var(--muted)]">View only</span>}
@@ -267,7 +271,7 @@ function LeadPersonRow({ row, leadFileId, groups, owners, companies, pipelineEve
           {oppState?.error && <div className="mt-1 text-xs text-red-700">{oppState.error}</div>}
         </td>
       </tr>
-      {((!editing && probabilityValue === "T90") || (editing && probabilityDraft === "T90")) && (
+      {row.status !== "won" && ((!editing && probabilityValue === "T90") || (editing && probabilityDraft === "T90")) && (
         <tr className="border-b border-[var(--border)] bg-black/20">
           <td colSpan={8} className="px-4 py-3"><LeadPipeline row={row} events={pipelineEvents} owners={owners} canEdit={canEdit} pending={pipelinePending} onStage={(stage) => startPipelineTransition(() => setLeadPipelineStage(row.id, stage, leadFileId))} /></td>
         </tr>
@@ -297,7 +301,14 @@ function LeadPersonRow({ row, leadFileId, groups, owners, companies, pipelineEve
               <Field label={t("leadPipeline.probability")}><Select name="probability" value={probabilityDraft} onChange={(event) => setProbabilityDraft(event.target.value)}><option value="T90">T90</option><option value="T70">T70</option><option value="T50">T50</option></Select></Field>
               <Field label={t("leadPipeline.reconnect")}><Input name="reconnect_at" type="datetime-local" defaultValue={row.reconnect_at ? new Date(row.reconnect_at).toISOString().slice(0,16) : ""} /></Field>
               <Field label={t("leadPipeline.nextStep")}><Input name="next_step" defaultValue={row.next_step || ""} /></Field>
-              <Field label={t("leadPipeline.estimatedValue")}><Input name="estimated_value" type="number" min="0" step="0.01" defaultValue={row.estimated_value || 0} /></Field>
+              <Field label={t("leadPipeline.estimatedValue")}><Input name="estimated_value" type="number" min="0" step="0.01" value={estimatedValueDraft} onChange={(event) => setEstimatedValueDraft(Number(event.target.value) || 0)} /></Field>
+              <Field label="VAT">
+                <Select name="vat_rate" value={vatRateDraft} onChange={(event) => setVatRateDraft(Number(event.target.value))}>
+                  <option value={20}>+20% VAT</option>
+                  <option value={0}>No VAT</option>
+                </Select>
+                <p className="mt-1 text-xs text-[var(--muted)]">Total: {new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(estimatedValueDraft * (1 + vatRateDraft / 100))}</p>
+              </Field>
               <Field label="RSVP"><Select name="rsvp" defaultValue={row.rsvp || ""}><option value="">Unknown</option><option value="yes">Yes</option><option value="maybe">Maybe</option><option value="no">No</option></Select></Field>
               <Field label="Source"><Input name="source" defaultValue={c.source || ""} /></Field>
               <Field label="Lead notes" className="md:col-span-2"><Input name="lead_notes" defaultValue={row.notes || ""} /></Field>

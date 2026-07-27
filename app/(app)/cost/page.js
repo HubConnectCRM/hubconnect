@@ -35,12 +35,12 @@ export default async function CostPage({ searchParams }) {
     eventId
       ? supabase
           .from("deals")
-          .select("id, company_name, offer_value, company:companies(name)")
+          .select("id, company_name, offer_value, iva, company:companies(name)")
           .eq("stage", "won")
           .or(`pushed_event_id.eq.${eventId},event_id.eq.${eventId}`)
       : supabase
           .from("deals")
-          .select("id, company_name, offer_value, company:companies(name)")
+          .select("id, company_name, offer_value, iva, company:companies(name)")
           .eq("stage", "won")
           .eq("lead_file_id", leadFileId),
   ]);

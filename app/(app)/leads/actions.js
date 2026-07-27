@@ -209,6 +209,7 @@ export async function updateLeadPerson(prevState, formData) {
   const newNotes = clean(formData.get("lead_notes"));
   const newNextStep = clean(formData.get("next_step"));
   const newEstimatedValue = Number(clean(formData.get("estimated_value")) || 0);
+  const newVatRate = Number(clean(formData.get("vat_rate")) ?? 20);
 
   const { error: leadError } = await supabase.from("lead_contacts").update({
     group_id: clean(formData.get("group_id")) || null,
@@ -219,6 +220,7 @@ export async function updateLeadPerson(prevState, formData) {
     reconnect_at: clean(formData.get("reconnect_at")),
     next_step: newNextStep,
     estimated_value: newEstimatedValue,
+    vat_rate: newVatRate,
     owner_id: ownerId || user.id,
   }).eq("id", leadContactId);
   if (leadError) return { error: leadError.message };
@@ -260,8 +262,13 @@ export async function createOpportunityFromLeadContact(prevState, formData) {
   // only price ever entered for this lead — it must carry over as the
   // deal's offer_value, otherwise every deal born from a lead conversion
   // shows €0 revenue everywhere that reads offer_value (Sales pipeline, and
-  // the Cost/Bilancino sheet's auto-synced RICAVI rows).
+  // the Cost/Bilancino sheet's auto-synced RICAVI rows). Same for the VAT
+  // choice made on the lead (vat_rate: 0 or 20) — stored as an actual amount
+  // on the deal (deals.iva) so Cost's RICAVI row uses the real tax instead
+  // of assuming a fixed rate.
   const offerValue = Number(clean(formData.get("estimated_value")) || 0);
+  const vatRate = Number(clean(formData.get("vat_rate")) ?? 20);
+  const iva = offerValue * (vatRate / 100);
 
   let finalCompanyId = companyId;
   if (!finalCompanyId && companyName) {
@@ -289,6 +296,7 @@ export async function createOpportunityFromLeadContact(prevState, formData) {
         stage,
         po_won: stage === "won",
         offer_value: offerValue,
+        iva,
         notes: clean(formData.get("notes")),
         created_by: user.id,
       })
@@ -297,7 +305,7 @@ export async function createOpportunityFromLeadContact(prevState, formData) {
     if (dealError) return { error: dealError.message };
     dealId = deal.id;
   } else {
-    const patch = { stage, offer_value: offerValue };
+    const patch = { stage, offer_value: offerValue, iva };
     if (stage === "won") patch.po_won = true;
     await supabase.from("deals").update(patch).eq("id", dealId);
   }

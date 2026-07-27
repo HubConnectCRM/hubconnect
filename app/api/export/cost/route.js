@@ -5,7 +5,6 @@ const EUR_FORMAT = '_-[$€-2]* #,##0.00_-;_-[$€-2]* \\-#,##0.00_-;_-[$€-2]*
 const NAVY = "FF002060";
 const GRAY = "FFBFBFBF";
 const YELLOW = "FFFFFF00";
-const VAT_RATE = 0.22;
 
 // Reproduces the existing hand-built "Bilancino" Excel template exactly —
 // same layout, colors, and formulas (see supabase/migration_026 for how the
@@ -34,17 +33,18 @@ export async function GET(request) {
       .eq(eventId ? "event_id" : "lead_file_id", eventId || leadFileId)
       .order("created_at", { ascending: true }),
     eventId
-      ? supabase.from("deals").select("company_name, offer_value, company:companies(name)").eq("stage", "won").or(`pushed_event_id.eq.${eventId},event_id.eq.${eventId}`)
-      : supabase.from("deals").select("company_name, offer_value, company:companies(name)").eq("stage", "won").eq("lead_file_id", leadFileId),
+      ? supabase.from("deals").select("company_name, offer_value, iva, company:companies(name)").eq("stage", "won").or(`pushed_event_id.eq.${eventId},event_id.eq.${eventId}`)
+      : supabase.from("deals").select("company_name, offer_value, iva, company:companies(name)").eq("stage", "won").eq("lead_file_id", leadFileId),
   ]);
 
   const scopeName = scopeResult.data?.name || "Bilancino";
   const costs = itemsResult.data || [];
-  // Deal-derived rows use the 22% VAT formula (matches the original
-  // template); manual rows use whatever IVA the user actually entered.
+  // deal.iva is whatever VAT rate/amount was actually chosen for that lead
+  // when it was won (see app/(app)/leads/actions.js) — written as a literal
+  // value, same as manual rows, not a fixed-rate formula.
   const revenues = [
-    ...(dealsResult.data || []).map((deal) => ({ name: deal.company?.name || deal.company_name || "—", imponibile: Number(deal.offer_value || 0), manualIva: null })),
-    ...(revenueItemsResult.data || []).map((item) => ({ name: item.description, imponibile: Number(item.imponibile || 0), manualIva: Number(item.iva || 0) })),
+    ...(dealsResult.data || []).map((deal) => ({ name: deal.company?.name || deal.company_name || "—", imponibile: Number(deal.offer_value || 0), iva: Number(deal.iva || 0) })),
+    ...(revenueItemsResult.data || []).map((item) => ({ name: item.description, imponibile: Number(item.imponibile || 0), iva: Number(item.iva || 0) })),
   ];
 
   const workbook = new ExcelJS.Workbook();
@@ -97,7 +97,7 @@ export async function GET(request) {
     const row = dataStartRow + index;
     sheet.getCell(`F${row}`).value = row_.name;
     sheet.getCell(`G${row}`).value = row_.imponibile;
-    sheet.getCell(`H${row}`).value = row_.manualIva === null ? { formula: `PRODUCT(G${row}*${VAT_RATE})` } : row_.manualIva;
+    sheet.getCell(`H${row}`).value = row_.iva;
     sheet.getCell(`I${row}`).value = { formula: `SUM(G${row},H${row})` };
     for (const col of ["G", "H", "I"]) sheet.getCell(`${col}${row}`).numFmt = EUR_FORMAT;
   });
