@@ -110,6 +110,12 @@ export const Icon = {
       <rect x="1" y="5" width="15" height="14" rx="2" />
     </svg>
   ),
+  cost: (p) => (
+    <svg {...base} {...p}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v10M15 9.5c0-1.4-1.3-2.5-3-2.5s-3 1-3 2.3c0 2.7 6 1.2 6 3.9 0 1.3-1.3 2.3-3 2.3s-3-1.1-3-2.5" />
+    </svg>
+  ),
   journal: (p) => (
     <svg {...base} {...p}>
       <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />

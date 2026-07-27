@@ -61,7 +61,8 @@
     "notifications": "Notifiche",
     "accreditation": "Accreditamento",
     "more": "Altro",
-    "journal": "Journal"
+    "journal": "Journal",
+    "cost": "Cost"
   },
   "sales": {
     "title": "Sales",
@@ -464,6 +465,8 @@
   },
   "cost": {
     "open": "Bilancino",
+    "pickerSubtitle": "Scegli un evento o un file lead per vedere o aggiungere i suoi costi.",
+    "pickerSearch": "Cerca eventi e file lead...",
     "subtitle": "Costi e ricavi per questo evento/file lead — corrisponde esattamente al formato Excel Bilancino.",
     "export": "Esporta in Excel",
     "costi": "COSTI",

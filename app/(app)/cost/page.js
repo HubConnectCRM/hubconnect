@@ -1,10 +1,22 @@
 import { requireProfile } from "@/lib/auth";
 import CostSheetView from "@/components/CostSheetView";
+import CostPickerView from "@/components/CostPickerView";
 
 export default async function CostPage({ searchParams }) {
   const { event: eventId, leadFile: leadFileId } = await searchParams;
   const { supabase, profile } = await requireProfile();
   const canManage = profile.role === "admin" || profile.role === "sales";
+
+  // No scope picked yet — land here from the sidebar's own "Cost" tab, not
+  // just from an event/lead file's own "Bilancino" button. List every event
+  // and lead file so the sheet is reachable without going through one first.
+  if (!eventId && !leadFileId) {
+    const [{ data: events }, { data: leadFiles }] = await Promise.all([
+      supabase.from("events").select("id, name, start_date").order("start_date", { ascending: false }),
+      supabase.from("lead_files").select("id, name").order("name"),
+    ]);
+    return <CostPickerView events={events || []} leadFiles={leadFiles || []} />;
+  }
 
   const [scopeResult, itemsResult, dealsResult] = await Promise.all([
     eventId

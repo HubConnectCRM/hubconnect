@@ -61,7 +61,8 @@
     "notifications": "Notifications",
     "accreditation": "Accreditation",
     "more": "More",
-    "journal": "Journal"
+    "journal": "Journal",
+    "cost": "Cost"
   },
   "sales": {
     "title": "Sales",
@@ -596,6 +597,8 @@
   },
   "cost": {
     "open": "Bilancino",
+    "pickerSubtitle": "Pick an event or lead file to view or add its costs.",
+    "pickerSearch": "Search events and lead files...",
     "subtitle": "Costs and revenue for this event/lead file — matches the Bilancino Excel format.",
     "export": "Export to Excel",
     "costi": "COSTS",
