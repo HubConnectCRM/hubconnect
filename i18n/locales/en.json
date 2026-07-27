@@ -21,7 +21,6 @@
     "none": "None",
     "yes": "Yes",
     "no": "No",
-    "comingSoon": "Coming in the next build phase.",
     "back": "Back",
     "new": "New",
     "add": "Add",
@@ -619,5 +618,10 @@
     "totalCost": "Total Cost",
     "netProfit": "Net Profit",
     "deleteConfirm": "Delete this cost item? This cannot be undone."
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Follow-up reminders, reply alerts and event/sales handoff tasks.",
+    "empty": "No notifications yet."
   }
 }

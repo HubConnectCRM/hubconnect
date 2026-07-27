@@ -21,7 +21,6 @@
     "none": "Yok",
     "yes": "Evet",
     "no": "Hayır",
-    "comingSoon": "Sonraki fazda geliyor.",
     "back": "Geri",
     "new": "Yeni",
     "add": "Ekle",
@@ -487,5 +486,10 @@
     "totalCost": "Toplam Maliyet",
     "netProfit": "Net Kâr",
     "deleteConfirm": "Bu maliyet kalemi silinsin mi? Bu işlem geri alınamaz."
+  },
+  "notifications": {
+    "title": "Bildirimler",
+    "subtitle": "Takip hatırlatmaları, yanıt uyarıları ve event/sales devir görevleri.",
+    "empty": "Henüz bildirim yok."
   }
 }

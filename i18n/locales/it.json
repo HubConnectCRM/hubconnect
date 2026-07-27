@@ -21,7 +21,6 @@
     "none": "Nessuno",
     "yes": "Sì",
     "no": "No",
-    "comingSoon": "In arrivo nella prossima fase.",
     "back": "Indietro",
     "new": "Nuovo",
     "add": "Aggiungi",
@@ -487,5 +486,10 @@
     "totalCost": "Costi Totali",
     "netProfit": "Utile Netto",
     "deleteConfirm": "Eliminare questa voce di costo? Questa azione non può essere annullata."
+  },
+  "notifications": {
+    "title": "Notifiche",
+    "subtitle": "Promemoria di follow-up, avvisi di risposta e attività di passaggio evento/sales.",
+    "empty": "Ancora nessuna notifica."
   }
 }
