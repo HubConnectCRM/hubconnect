@@ -66,6 +66,7 @@ export default function EventDetail({ event, registrations, contacts, groups, ow
         <Button type="button" variant="secondary" disabled={chatPending} onClick={() => startChat(async () => { const result = await openEventChat(event.id, event.name); if (result?.groupId) window.location.href = `/chat?group=${result.groupId}`; })}>{chatPending ? "…" : "Chat"}</Button>
         <Button href={`/accreditation?event=${event.id}`}>{t("accreditation.open")}</Button>
         <Button variant="secondary" href={`/api/export/accreditation?event=${event.id}`}>{t("accreditation.export")}</Button>
+        <Button variant="secondary" href={`/cost?event=${event.id}`}>{t("cost.open")}</Button>
         {canManage && <Button variant="secondary" href={`/events/${event.id}/edit`}>
           {t("common.edit")}
         </Button>}

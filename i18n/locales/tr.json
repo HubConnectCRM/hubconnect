@@ -462,5 +462,30 @@
     "today": "Bugün",
     "yesterday": "Dün",
     "kinds": { "call_note": "Görüşme Notu", "task": "Hatırlatma", "lead_update": "Lead Güncelleme" }
+  },
+  "cost": {
+    "open": "Bilancino",
+    "subtitle": "Bu event/lead dosyası için maliyet ve gelir — Bilancino Excel formatıyla birebir aynı.",
+    "export": "Excel'e Aktar",
+    "costi": "MALİYETLER",
+    "ricavi": "GELİRLER",
+    "noItems": "Henüz maliyet kalemi yok.",
+    "noRevenue": "Bu kapsamda henüz kazanılmış (won) deal yok.",
+    "revenueHint": "Gelir, bu event/lead dosyasına ait won deal'lerden geliyor — Sales'te bir deal ekleyip event'e it (push) ederek burada görünmesini sağla.",
+    "description": "Açıklama",
+    "descriptionPlaceholder": "örn. Otel rezervasyonu, mekan kirası, catering...",
+    "imponibile": "Net tutar",
+    "iva": "KDV",
+    "ivaHint": "KDV tutarını doğrudan gir (örn. net tutarın %22'si, ya da özel bir tutar).",
+    "total": "Toplam",
+    "sponsor": "Sponsor / müşteri",
+    "receipt": "Fiş/Fatura",
+    "paid": "Ödendi",
+    "unpaid": "Ödenmedi",
+    "addItem": "Maliyet ekle",
+    "totalRevenue": "Toplam Gelir",
+    "totalCost": "Toplam Maliyet",
+    "netProfit": "Net Kâr",
+    "deleteConfirm": "Bu maliyet kalemi silinsin mi? Bu işlem geri alınamaz."
   }
 }

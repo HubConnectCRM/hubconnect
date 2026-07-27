@@ -462,5 +462,30 @@
     "today": "Oggi",
     "yesterday": "Ieri",
     "kinds": { "call_note": "Nota di chiamata", "task": "Promemoria", "lead_update": "Aggiornamento lead" }
+  },
+  "cost": {
+    "open": "Bilancino",
+    "subtitle": "Costi e ricavi per questo evento/file lead — corrisponde esattamente al formato Excel Bilancino.",
+    "export": "Esporta in Excel",
+    "costi": "COSTI",
+    "ricavi": "RICAVI",
+    "noItems": "Ancora nessuna voce di costo.",
+    "noRevenue": "Ancora nessun deal vinto per questo ambito.",
+    "revenueHint": "I ricavi provengono dai deal vinti per questo evento/file lead — aggiungi o spingi (push) un deal in Sales per vederlo qui.",
+    "description": "Descrizione",
+    "descriptionPlaceholder": "es. Prenotazione hotel, affitto location, catering...",
+    "imponibile": "Imponibile",
+    "iva": "IVA",
+    "ivaHint": "Inserisci l'importo IVA direttamente (es. 22% dell'imponibile, o una cifra personalizzata).",
+    "total": "Totale",
+    "sponsor": "Sponsor / cliente",
+    "receipt": "Ricevuta",
+    "paid": "Pagato",
+    "unpaid": "Non pagato",
+    "addItem": "Aggiungi un costo",
+    "totalRevenue": "Ricavi Totali",
+    "totalCost": "Costi Totali",
+    "netProfit": "Utile Netto",
+    "deleteConfirm": "Eliminare questa voce di costo? Questa azione non può essere annullata."
   }
 }

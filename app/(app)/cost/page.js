@@ -1,0 +1,46 @@
+import { requireProfile } from "@/lib/auth";
+import CostSheetView from "@/components/CostSheetView";
+
+export default async function CostPage({ searchParams }) {
+  const { event: eventId, leadFile: leadFileId } = await searchParams;
+  const { supabase, profile } = await requireProfile();
+  const canManage = profile.role === "admin" || profile.role === "sales";
+
+  const [scopeResult, itemsResult, dealsResult] = await Promise.all([
+    eventId
+      ? supabase.from("events").select("id, name").eq("id", eventId).single()
+      : supabase.from("lead_files").select("id, name").eq("id", leadFileId).single(),
+    supabase
+      .from("cost_items")
+      .select("id, description, imponibile, iva, paid, receipt_path, created_at, created_by:profiles(full_name, email)")
+      .eq(eventId ? "event_id" : "lead_file_id", eventId || leadFileId)
+      .order("created_at", { ascending: true }),
+    eventId
+      ? supabase
+          .from("deals")
+          .select("id, company_name, offer_value, company:companies(name)")
+          .eq("stage", "won")
+          .or(`pushed_event_id.eq.${eventId},event_id.eq.${eventId}`)
+      : supabase
+          .from("deals")
+          .select("id, company_name, offer_value, company:companies(name)")
+          .eq("stage", "won")
+          .eq("lead_file_id", leadFileId),
+  ]);
+
+  const items = (itemsResult.data || []).map((item) => ({
+    ...item,
+    receiptUrl: item.receipt_path ? supabase.storage.from("cost-receipts").getPublicUrl(item.receipt_path).data.publicUrl : null,
+  }));
+
+  return (
+    <CostSheetView
+      scopeName={scopeResult.data?.name || ""}
+      eventId={eventId || null}
+      leadFileId={leadFileId || null}
+      items={items}
+      deals={dealsResult.data || []}
+      canManage={canManage}
+    />
+  );
+}

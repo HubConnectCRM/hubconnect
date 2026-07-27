@@ -62,6 +62,7 @@ export default function LeadFileDetail({ file, deals, leadContacts = [], groups,
 
       <PageHeader title={file.name} subtitle={file.description || "People, companies and sales opportunities inside this lead workspace."}>
         <Button variant="secondary" href={`/api/export/leads?file=${file.id}`}>Excel Export</Button>
+        <Button variant="secondary" href={`/cost?leadFile=${file.id}`}>{t("cost.open")}</Button>
         {canEdit && <Button onClick={() => setShowPerson(true)}>+ Add Person</Button>}
         {canEdit && <Button variant="secondary" onClick={() => setShowDealForm((v) => !v)}>{showDealForm ? "Hide opportunity" : "+ Create opportunity"}</Button>}
         {canEdit && <Button variant="secondary" href={`/import?leadFileId=${file.id}&destination=lead_file`}>Import to this file</Button>}

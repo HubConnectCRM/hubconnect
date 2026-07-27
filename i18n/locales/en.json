@@ -594,5 +594,30 @@
     "today": "Today",
     "yesterday": "Yesterday",
     "kinds": { "call_note": "Call note", "task": "Reminder", "lead_update": "Lead update" }
+  },
+  "cost": {
+    "open": "Bilancino",
+    "subtitle": "Costs and revenue for this event/lead file — matches the Bilancino Excel format.",
+    "export": "Export to Excel",
+    "costi": "COSTS",
+    "ricavi": "REVENUE",
+    "noItems": "No cost items yet.",
+    "noRevenue": "No won deals for this scope yet.",
+    "revenueHint": "Revenue comes from won deals for this event/lead file — add or push a deal in Sales to see it here.",
+    "description": "Description",
+    "descriptionPlaceholder": "e.g. Hotel booking, venue rental, catering...",
+    "imponibile": "Net amount",
+    "iva": "VAT",
+    "ivaHint": "Enter the VAT amount directly (e.g. 22% of net, or a custom figure).",
+    "total": "Total",
+    "sponsor": "Sponsor / client",
+    "receipt": "Receipt",
+    "paid": "Paid",
+    "unpaid": "Unpaid",
+    "addItem": "Add a cost",
+    "totalRevenue": "Total Revenue",
+    "totalCost": "Total Cost",
+    "netProfit": "Net Profit",
+    "deleteConfirm": "Delete this cost item? This cannot be undone."
   }
 }
