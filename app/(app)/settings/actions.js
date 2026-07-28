@@ -132,7 +132,6 @@ export async function connectMailbos(prevState, formData) {
 
   revalidatePath("/settings");
   revalidatePath("/mail");
-  revalidatePath("/contact-center");
   return { ok: true, senderEmail, provider, label };
 }
 
@@ -150,7 +149,6 @@ export async function disconnectMailbos() {
     .eq("id", user.id);
   revalidatePath("/settings");
   revalidatePath("/mail");
-  revalidatePath("/contact-center");
   return { ok: true };
 }
 

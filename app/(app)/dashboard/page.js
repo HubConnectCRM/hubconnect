@@ -43,7 +43,10 @@ export default async function DashboardPage() {
     supabase.from("lead_files").select("*", { count: "exact", head: true }),
     supabase.from("deals").select("*", { count: "exact", head: true }),
     supabase.from("deals").select("id, offer_value, stage", { count: "exact" }).eq("owner_id", profile.id).in("stage", ["prospect", "contacted", "in_progress", "proposal"]),
-    supabase.from("deals").select("*", { count: "exact", head: true }).eq("owner_id", profile.id).eq("stage", "won"),
+    // Mirrors the Sales page's own definition of "won" (see app/(app)/sales/page.js) —
+    // a deal counts as won via stage='won' OR po_won=true OR having been pushed to an
+    // event, not stage alone, otherwise this undercounts real won deals.
+    supabase.from("deals").select("*", { count: "exact", head: true }).eq("owner_id", profile.id).or("stage.eq.won,po_won.eq.true,pushed_event_id.not.is.null"),
     supabase.from("events").select("id, name, location, venue_name, start_date, status, prospect_number").gte("start_date", today).neq("status", "cancelled").order("start_date").limit(4),
     supabase.from("lead_contacts").select("id, probability, reconnect_at, next_step, contact:contacts(full_name, company:companies(name))").eq("owner_id", profile.id).not("reconnect_at", "is", null).gte("reconnect_at", new Date(Date.now() - 86400000).toISOString()).order("reconnect_at").limit(6),
     supabase.from("audit_log").select("id, table_name, action, changed_at").eq("user_id", profile.id).order("changed_at", { ascending: false }).limit(6),

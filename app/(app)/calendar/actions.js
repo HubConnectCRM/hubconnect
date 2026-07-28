@@ -26,7 +26,6 @@ export async function createMeeting(prevState, formData) {
   });
   if (error) return { error: error.message };
   revalidatePath("/calendar");
-  revalidatePath("/contact-center");
   return { ok: Date.now() };
 }
 
@@ -37,6 +36,5 @@ export async function deleteMeeting(id) {
   const { error } = await query;
   if (error) return { error: error.message };
   revalidatePath("/calendar");
-  revalidatePath("/contact-center");
   return { ok: true };
 }

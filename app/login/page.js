@@ -65,7 +65,10 @@ export default function LoginPage() {
       <div className="pointer-events-none absolute left-1/2 top-[-18rem] h-[32rem] w-[32rem] -translate-x-1/2 rounded-full bg-[var(--brand)]/10 blur-3xl" />
       <div className="relative w-full max-w-md">
         <div className="mb-7 flex items-center justify-between">
-          <span className="flex items-center gap-3 text-lg font-semibold"><span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl bg-white"><Image src="/logo.png" alt="Retail Hub" width={100} height={35} className="h-7 w-auto object-contain" priority /></span><span>Hub Connect</span></span>
+          <span className="flex flex-col items-start gap-1">
+            <Image src="/logo.png" alt="Hub Connect" width={140} height={94} className="h-12 w-auto object-contain" priority />
+            <span className="text-sm font-black tracking-wide text-[var(--brand)]">Hub Connect</span>
+          </span>
           <LanguageSwitcher />
         </div>
 

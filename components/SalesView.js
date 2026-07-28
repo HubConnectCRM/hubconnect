@@ -63,7 +63,7 @@ export default function SalesView({ deals, owners, events, leadFiles, companies,
         {canEdit && <Button variant="secondary" href="/import?destination=sales_pipeline">Excel Import</Button>}
       </PageHeader>
 
-      {!canEdit && <Card className="mb-5 border-blue-400/25 bg-blue-400/[.06] p-4"><p className="text-sm font-semibold text-blue-200">Read-only Sales view</p><p className="mt-1 text-xs text-[var(--muted)]">Events users can review won sales and representatives, but only Sales can change the pipeline.</p></Card>}
+      {!canEdit && <Card className="mb-5 border-blue-400/25 bg-blue-400/[.06] p-4"><p className="text-sm font-semibold text-blue-200">{t("sales.readOnlyTitle")}</p><p className="mt-1 text-xs text-[var(--muted)]">{t("sales.readOnlyHint")}</p></Card>}
 
       {loadError && <Card className="mb-5 border-red-500/30 p-4 text-sm text-red-300">Supabase data could not be loaded: {loadError}</Card>}
 
@@ -78,7 +78,7 @@ export default function SalesView({ deals, owners, events, leadFiles, companies,
       <div className="mb-5 grid gap-3 sm:grid-cols-3">
         <button onClick={() => setTab("won")} className="text-left"><Card className={`p-5 ${tab === "won" ? "border-[var(--brand)]" : ""}`}><p className="text-xs font-semibold uppercase tracking-[.14em] text-[var(--muted)]">Won</p><p className="mt-2 text-3xl font-semibold">{filteredDeals.length}</p><p className="mt-1 text-xs text-[var(--brand)]">{t("sales.wonTitle")}</p></Card></button>
         <button onClick={() => setTab("companies")} className="text-left"><Card className={`p-5 ${tab === "companies" ? "border-[var(--brand)]" : ""}`}><p className="text-xs font-semibold uppercase tracking-[.14em] text-[var(--muted)]">{t("companies.title")}</p><p className="mt-2 text-3xl font-semibold">{new Set(filteredDeals.map((d) => d.company?.id || d.company_name)).size}</p><p className="mt-1 text-xs text-[var(--brand)]">{t("sales.wonTitle")}</p></Card></button>
-        <button onClick={() => setTab("people")} className="text-left"><Card className={`p-5 ${tab === "people" ? "border-[var(--brand)]" : ""}`}><p className="text-xs font-semibold uppercase tracking-[.14em] text-[var(--muted)]">{t("contacts.title")}</p><p className="mt-2 text-3xl font-semibold">{filteredDeals.reduce((n,d) => n + (d.reps?.length || 0), 0)}</p><p className="mt-1 text-xs text-[var(--brand)]">{t("deals.repsTitle")}</p></Card></button>
+        <button onClick={() => setTab("people")} className="text-left"><Card className={`p-5 ${tab === "people" ? "border-[var(--brand)]" : ""}`}><p className="text-xs font-semibold uppercase tracking-[.14em] text-[var(--muted)]">{t("deals.repsTitle")}</p><p className="mt-2 text-3xl font-semibold">{filteredDeals.reduce((n,d) => n + (d.reps?.length || 0), 0)}</p><p className="mt-1 text-xs text-[var(--brand)]">{t("sales.wonTitle")}</p></Card></button>
       </div>
 
       <div className="mb-4 flex flex-wrap gap-3">
@@ -93,12 +93,14 @@ export default function SalesView({ deals, owners, events, leadFiles, companies,
 }
 
 function PeopleTable({ people }) {
-  if (!people.length) return <EmptyState>No won people yet. Move a lead opportunity to Won first.</EmptyState>;
-  return <Card className="overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-sm"><thead className="border-b border-[var(--border)] bg-[var(--background)] text-left text-[var(--muted)]"><tr><th className="px-4 py-3 font-medium">Person</th><th className="px-4 py-3 font-medium">Company</th><th className="px-4 py-3 font-medium">Role</th><th className="px-4 py-3 font-medium">Email</th></tr></thead><tbody>{people.map((p) => <tr key={p.id} className="border-b border-[var(--border)] last:border-0"><td className="px-4 py-3 font-medium">{p.full_name || "—"}</td><td className="px-4 py-3 text-[var(--muted)]">{p.company?.name || "—"}</td><td className="px-4 py-3 text-[var(--muted)]">{p.job_title || "—"}</td><td className="px-4 py-3 text-[var(--muted)]">{p.email || "—"}</td></tr>)}</tbody></table></div></Card>;
+  const { t } = useTranslation();
+  if (!people.length) return <EmptyState>{t("sales.emptyPeople")}</EmptyState>;
+  return <Card className="overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-sm"><thead className="border-b border-[var(--border)] bg-[var(--background)] text-left text-[var(--muted)]"><tr><th className="px-4 py-3 font-medium">{t("sales.person")}</th><th className="px-4 py-3 font-medium">{t("sales.company")}</th><th className="px-4 py-3 font-medium">{t("sales.role")}</th><th className="px-4 py-3 font-medium">{t("common.email")}</th></tr></thead><tbody>{people.map((p) => <tr key={p.id} className="border-b border-[var(--border)] last:border-0"><td className="px-4 py-3 font-medium">{p.full_name || "—"}</td><td className="px-4 py-3 text-[var(--muted)]">{p.company?.name || "—"}</td><td className="px-4 py-3 text-[var(--muted)]">{p.job_title || "—"}</td><td className="px-4 py-3 text-[var(--muted)]">{p.email || "—"}</td></tr>)}</tbody></table></div></Card>;
 }
 
 function CompanyGrid({ companies }) {
-  if (!companies.length) return <EmptyState>No won companies yet.</EmptyState>;
+  const { t } = useTranslation();
+  if (!companies.length) return <EmptyState>{t("sales.emptyCompanies")}</EmptyState>;
   return <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{companies.map((c) => <Card key={c.id} className="p-4"><p className="font-semibold">{c.name}</p>{c.website && <a href={c.website} target="_blank" className="mt-1 block text-xs text-[var(--brand)] hover:underline">{c.website}</a>}{c.overview && <p className="mt-2 line-clamp-3 text-xs text-[var(--muted)]">{c.overview}</p>}</Card>)}</div>;
 }
 
@@ -181,7 +183,7 @@ function SalesDealCard({ deal, events, contacts, defaultOpen = false, canEdit = 
           {deal.group?.name && <Badge color="purple">{deal.group.name}</Badge>}
           <Badge color={STAGE_COLOR[deal.stage]}>{t(`deals.stages.${deal.stage}`)}</Badge>
           <span className="text-sm text-[var(--muted)]">
-            {reps.length} {t("deals.reps")}
+            {reps.length} {reps.length === 1 ? t("deals.rep") : t("deals.reps")}
             {yesCount > 0 && <span className="ml-1 text-green-700">· {yesCount} {t("rsvp.yes")}</span>}
             {noCount > 0 && <span className="ml-1 text-red-700">· {noCount} {t("rsvp.no")}</span>}
           </span>
@@ -225,7 +227,8 @@ function SalesDealCard({ deal, events, contacts, defaultOpen = false, canEdit = 
 }
 
 function ReadOnlyReps({ reps }) {
-  if (!reps.length) return <p className="text-xs text-[var(--muted)]">No representatives.</p>;
+  const { t } = useTranslation();
+  if (!reps.length) return <p className="text-xs text-[var(--muted)]">{t("sales.noRepsYet")}</p>;
   return <div className="divide-y divide-white/10 rounded-2xl border border-white/10">{reps.map((rep) => <div key={rep.id} className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm"><span><strong>{rep.contact?.full_name || "—"}</strong><span className="ml-2 text-xs text-[var(--muted)]">{rep.contact?.job_title || rep.contact?.email || ""}</span></span>{rep.rsvp && <Badge color={RSVP_COLOR[rep.rsvp] || "gray"}>{rep.rsvp}</Badge>}</div>)}</div>;
 }
 

@@ -73,9 +73,7 @@ export default function PerformanceView({ leads, deals }) {
 
   return (
     <div className="mx-auto max-w-7xl">
-      <PageHeader title={t("performance.title")} subtitle={t("performance.subtitle")}>
-        <Button href="/contact-center" variant="secondary">HQ</Button>
-      </PageHeader>
+      <PageHeader title={t("performance.title")} subtitle={t("performance.subtitle")} />
 
       <Card className="mb-5 p-3">
         <div className="flex flex-wrap items-center gap-2">

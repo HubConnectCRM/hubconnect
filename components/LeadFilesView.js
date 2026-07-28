@@ -34,7 +34,7 @@ export default function LeadFilesView({ files, loadError = null, canEdit = true 
         </Button>}
       </PageHeader>
 
-      {!canEdit && <Card className="mb-5 border-blue-400/25 bg-blue-400/[.06] p-4"><p className="text-sm font-semibold text-blue-200">Read-only Leads view</p><p className="mt-1 text-xs text-[var(--muted)]">Events users can review Sales workspaces, but only Sales can change leads or opportunities.</p></Card>}
+      {!canEdit && <Card className="mb-5 border-blue-400/25 bg-blue-400/[.06] p-4"><p className="text-sm font-semibold text-blue-200">{t("leads.readOnlyTitle")}</p><p className="mt-1 text-xs text-[var(--muted)]">{t("leads.readOnlyHint")}</p></Card>}
 
       {loadError && (
         <Card className="mb-5 border-red-500/30 p-4 text-sm text-red-300">

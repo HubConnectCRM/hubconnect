@@ -45,7 +45,6 @@ export default function MailCenterView({ connected, senderEmail, provider, messa
     <div className="mx-auto max-w-6xl">
       <PageHeader title={t("mail.title")} subtitle={t("mail.connectedSubtitle", { email: senderEmail || "MailBos" })}>
         <Badge color="brand">{provider === "outlook" ? "Outlook" : "Gmail"}</Badge>
-        <Button href="/contact-center" variant="secondary">{t("contactCenter.backToCenter")}</Button>
         <Button href="/settings" variant="secondary">{t("mail.manageConnection")}</Button>
       </PageHeader>
 

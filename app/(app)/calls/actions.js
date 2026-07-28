@@ -332,7 +332,6 @@ export async function saveCallOutcome(prevState, formData) {
   });
 
   revalidatePath("/calls");
-  revalidatePath("/contact-center");
   revalidatePath(`/contacts/${contactId}`);
   return { ok: Date.now() };
 }

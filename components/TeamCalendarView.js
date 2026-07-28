@@ -80,7 +80,7 @@ export default function TeamCalendarView({ meetings, teammates, contacts, journa
     <div className="mx-auto max-w-[1800px]">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div><h1 className="text-2xl font-semibold">{t("contactCenter.calendarTitle")}</h1><p className="mt-1 text-sm text-[var(--muted)]">{t("contactCenter.calendarDescription")}</p></div>
-        <div className="flex flex-wrap gap-2"><Button href="/contact-center" variant="secondary">{t("contactCenter.backToCenter")}</Button><Button type="button" onClick={() => setShowComposer(true)}>＋ {copy.newEvent}</Button></div>
+        <div className="flex flex-wrap gap-2"><Button type="button" onClick={() => setShowComposer(true)}>＋ {copy.newEvent}</Button></div>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[290px_minmax(0,1fr)]">

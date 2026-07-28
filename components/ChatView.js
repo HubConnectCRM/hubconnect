@@ -69,7 +69,7 @@ export default function ChatView({ currentUser, groups, messages, members, readS
   if (loadError) return <div className="mx-auto max-w-5xl"><PageHeader title={t("chat.title")} subtitle={t("chat.subtitle")} /><Card className="border-red-400/30 p-6 text-red-300">Chat verisi yüklenemedi: {loadError}</Card></div>;
 
   return <div className="mx-auto max-w-[1500px]">
-    <PageHeader title={t("chat.title")} subtitle={t("chat.subtitle")}><Button href="/contact-center" variant="secondary">HQ</Button><Button type="button" onClick={() => setShowNew(true)}>＋ {t("chat.newChat")}</Button></PageHeader>
+    <PageHeader title={t("chat.title")} subtitle={t("chat.subtitle")}><Button type="button" onClick={() => setShowNew(true)}>＋ {t("chat.newChat")}</Button></PageHeader>
     <Card className="grid min-h-[72vh] overflow-hidden lg:grid-cols-[350px_minmax(0,1fr)]">
       <aside className="border-b border-[var(--border)] lg:border-b-0 lg:border-r">
         <div className="border-b border-[var(--border)] p-3"><Input placeholder={t("common.search")} onChange={(event) => { const value = event.target.value.toLowerCase(); document.querySelectorAll("[data-chat-name]").forEach((node) => { node.hidden = !node.dataset.chatName.includes(value); }); }} /></div>

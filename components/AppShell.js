@@ -64,21 +64,16 @@ export default function AppShell({ profile, children }) {
       <div className="flex min-h-full">
         <aside className="sticky top-0 hidden h-screen w-72 flex-none flex-col border-r border-white/10 bg-[#090a08] text-white lg:flex">
           <div className="px-5 pb-5 pt-5">
-            <div className="flex items-center gap-3 rounded-3xl border border-white/10 bg-white/[0.04] p-3">
-              <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl bg-white">
-                <Image
-                  src="/logo.png"
-                  alt={t("common.appName")}
-                  width={112}
-                  height={34}
-                  className="h-7 w-auto object-contain"
-                  priority
-                />
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-bold tracking-wide">Hub Connect</p>
-                <p className="text-xs text-zinc-500">{t("web.workspace")}</p>
-              </div>
+            <div className="flex flex-col items-start gap-1.5 rounded-3xl border border-white/10 bg-white/[0.04] p-4">
+              <Image
+                src="/logo.png"
+                alt={t("common.appName")}
+                width={112}
+                height={75}
+                className="h-11 w-auto object-contain"
+                priority
+              />
+              <p className="text-sm font-black tracking-wide text-[var(--brand)]">Hub Connect</p>
             </div>
           </div>
 
@@ -116,9 +111,9 @@ export default function AppShell({ profile, children }) {
 
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-20 flex items-center justify-between border-b border-white/10 bg-black/85 px-4 py-3 backdrop-blur-xl md:px-7">
-            <div className="flex items-center gap-3 lg:hidden">
-              <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-white"><Image src="/logo.png" alt="Retail Hub" width={90} height={30} className="h-6 w-auto object-contain" /></div>
-              <span className="font-semibold">Hub Connect</span>
+            <div className="flex items-center gap-2 lg:hidden">
+              <Image src="/logo.png" alt="Hub Connect" width={90} height={61} className="h-8 w-auto object-contain" />
+              <span className="font-black tracking-wide text-[var(--brand)]">Hub Connect</span>
             </div>
             <div className="hidden lg:block">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--brand)]">{t("web.crm")}</p>

@@ -64,9 +64,7 @@ export default function CallCenterView({ contacts, companies = [], logs, related
 
   return (
     <div className="mx-auto max-w-7xl">
-      <PageHeader title={t("contactCenter.callTitle")} subtitle={t("contactCenter.callDescription")}>
-        <Button href="/contact-center" variant="secondary">{t("contactCenter.backToCenter")}</Button>
-      </PageHeader>
+      <PageHeader title={t("contactCenter.callTitle")} subtitle={t("contactCenter.callDescription")} />
 
       <Card className="mb-4 p-2">
         <div className="grid grid-cols-3 gap-1">
