@@ -225,7 +225,7 @@ function LeadPersonRow({ row, leadFileId, groups, owners, companies, pipelineEve
   const probabilityValue = (row.probability || "T50").toUpperCase();
   const [probabilityDraft, setProbabilityDraft] = useState(probabilityValue);
   const [estimatedValueDraft, setEstimatedValueDraft] = useState(row.estimated_value || 0);
-  const [vatRateDraft, setVatRateDraft] = useState(row.vat_rate ?? 20);
+  const [vatRateDraft, setVatRateDraft] = useState(row.vat_rate ?? 22);
   const statusColor = row.status === "won" ? "green" : ["lost", "failed"].includes(row.status) ? "red" : ["opportunity", "postponed"].includes(row.status) ? "amber" : row.rsvp === "no" ? "red" : row.rsvp === "yes" ? "green" : "gray";
   const [pipelinePending, startPipelineTransition] = useTransition();
 
@@ -251,7 +251,7 @@ function LeadPersonRow({ row, leadFileId, groups, owners, companies, pipelineEve
               <input type="hidden" name="rsvp" value={row.rsvp || ""} />
               <input type="hidden" name="stage" value="prospect" />
               <input type="hidden" name="estimated_value" value={row.estimated_value || 0} />
-              <input type="hidden" name="vat_rate" value={row.vat_rate ?? 20} />
+              <input type="hidden" name="vat_rate" value={row.vat_rate ?? 22} />
               <button type="submit" disabled={oppPending || !(c.company?.id || c.company?.name || companyName)} className="rounded-lg border border-[var(--border)] px-2 py-1 text-xs hover:border-[var(--brand)]">Opportunity</button>
             </form>
             <form action={oppAction}>
@@ -263,7 +263,7 @@ function LeadPersonRow({ row, leadFileId, groups, owners, companies, pipelineEve
               <input type="hidden" name="rsvp" value={row.rsvp || "yes"} />
               <input type="hidden" name="stage" value="won" />
               <input type="hidden" name="estimated_value" value={row.estimated_value || 0} />
-              <input type="hidden" name="vat_rate" value={row.vat_rate ?? 20} />
+              <input type="hidden" name="vat_rate" value={row.vat_rate ?? 22} />
               <button type="submit" disabled={oppPending || !(c.company?.id || c.company?.name || companyName)} className="rounded-lg bg-green-600 px-2 py-1 text-xs font-medium text-white hover:bg-green-700">Mark won</button>
             </form>
           </div> : <span className="text-xs text-[var(--muted)]">View only</span>}
@@ -304,7 +304,7 @@ function LeadPersonRow({ row, leadFileId, groups, owners, companies, pipelineEve
               <Field label={t("leadPipeline.estimatedValue")}><Input name="estimated_value" type="number" min="0" step="0.01" value={estimatedValueDraft} onChange={(event) => setEstimatedValueDraft(Number(event.target.value) || 0)} /></Field>
               <Field label="VAT">
                 <Select name="vat_rate" value={vatRateDraft} onChange={(event) => setVatRateDraft(Number(event.target.value))}>
-                  <option value={20}>+20% VAT</option>
+                  <option value={22}>+22% VAT</option>
                   <option value={0}>No VAT</option>
                 </Select>
                 <p className="mt-1 text-xs text-[var(--muted)]">Total: {new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(estimatedValueDraft * (1 + vatRateDraft / 100))}</p>
