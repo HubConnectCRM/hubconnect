@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
+import { decodeMailbosKey, researchCompanyMailbos } from "@/lib/mailbos";
 
 function clean(v) {
   const s = (v ?? "").toString().trim();
@@ -111,6 +112,7 @@ const CACHE_COPY = {
     bmService: "Likely service/consulting-led; verify exact offering and commercial model.",
     bmProduct: "Likely product/retail-led; verify channels, target customer and distribution.",
     tonePremium: "premium / brand-conscious", toneTech: "professional / innovation-focused", toneDefault: "professional",
+    industry: "Industry", outreachAngle: "Outreach angle",
   },
   tr: {
     company: "Şirket", whatTheyDo: "Ne yapıyorlar", products: "Ürünler / hizmetler", productsHint: (h) => `Kamuya açık site verisine göre: ${h}. Kesin ürün/hizmetleri manuel doğrula.`,
@@ -124,6 +126,7 @@ const CACHE_COPY = {
     bmService: "Muhtemelen danışmanlık/hizmet odaklı; tam teklifi ve ticari modeli doğrula.",
     bmProduct: "Muhtemelen ürün/perakende odaklı; kanalları, hedef müşteriyi ve dağıtımı doğrula.",
     tonePremium: "premium / marka odaklı", toneTech: "profesyonel / inovasyon odaklı", toneDefault: "profesyonel",
+    industry: "Sektör", outreachAngle: "Görüşme açısı",
   },
   it: {
     company: "Azienda", whatTheyDo: "Cosa fanno", products: "Prodotti / servizi", productsHint: (h) => `I metadati del sito pubblico suggeriscono: ${h}. Verifica manualmente i prodotti/servizi esatti.`,
@@ -137,6 +140,7 @@ const CACHE_COPY = {
     bmService: "Probabilmente orientato a consulenza/servizi; verifica l'offerta esatta e il modello commerciale.",
     bmProduct: "Probabilmente orientato a prodotto/retail; verifica canali, cliente target e distribuzione.",
     tonePremium: "premium / attento al brand", toneTech: "professionale / orientato all'innovazione", toneDefault: "professionale",
+    industry: "Settore", outreachAngle: "Angolo di contatto",
   },
 };
 
@@ -180,6 +184,21 @@ function structuredCompanyCache({ name, website, title, description, locale }) {
     `${copy.tone}: ${inferTone(text, locale)}`,
     `${copy.website}: ${website || copy.websiteNotFound}`,
   ].join("\n");
+}
+
+// The real AI research result from MailBos (same /api/ext/v1/company-cache
+// endpoint HubConnect iOS already calls) — MailBos's own backend handles
+// the cross-account cache/credit accounting, we just render whatever it
+// returns. Only the labels are ours to translate; the AI-written sentences
+// come back in whatever language MailBos generated them in.
+function mailbosCompanyCache({ name, website, item, locale }) {
+  const copy = cacheCopy(locale);
+  const summary = clean(item.companySummary) || clean(item.outreachAngle) || copy.noDescription;
+  const rows = [`${copy.company}: ${name}`, `${copy.whatTheyDo}: ${summary}`];
+  if (clean(item.industry)) rows.push(`${copy.industry}: ${item.industry}`);
+  if (clean(item.outreachAngle) && item.outreachAngle !== summary) rows.push(`${copy.outreachAngle}: ${item.outreachAngle}`);
+  rows.push(`${copy.website}: ${website || copy.websiteNotFound}`);
+  return rows.join("\n");
 }
 
 function isWeakOverview(overview) {
@@ -254,13 +273,36 @@ export async function enrichExistingCompanies(locale) {
 }
 
 export async function refreshCompanyCache(companyId, locale) {
-  const { supabase } = await requireProfile();
+  const { supabase, profile } = await requireProfile();
   const { data: company, error } = await supabase
     .from("companies")
     .select("id, name, website, overview")
     .eq("id", companyId)
     .single();
   if (error || !company) return { ok: false, error: error?.message || "not_found" };
+
+  // If the viewing user has connected MailBos, prefer its real AI research
+  // (same endpoint the iOS app already uses) — MailBos's own backend decides
+  // whether this is a fresh lookup or a cache hit from another account, so
+  // there's nothing extra for us to track here. Falls back to the free
+  // website scrape below if MailBos isn't connected or the call fails.
+  const mailbosKey = profile.mailbos_api_key_enc ? decodeMailbosKey(profile.mailbos_api_key_enc) : null;
+  if (mailbosKey) {
+    try {
+      const item = await researchCompanyMailbos(mailbosKey, { company: company.name, website: company.website || "" });
+      if (item && (item.companySummary || item.outreachAngle || item.industry)) {
+        const overview = mailbosCompanyCache({ name: company.name, website: company.website, item, locale });
+        const { error: updateError } = await supabase.from("companies").update({ overview }).eq("id", company.id);
+        if (updateError) return { ok: false, error: updateError.message };
+        revalidatePath(`/companies/${company.id}`);
+        revalidatePath("/companies");
+        return { ok: true, source: "mailbos" };
+      }
+    } catch {
+      // fall through to the free scraper below
+    }
+  }
+
   const info = await enrichCompanyRecord(company, locale);
   const patch = { overview: info.overview };
   if (info.website) patch.website = info.website;
@@ -268,6 +310,6 @@ export async function refreshCompanyCache(companyId, locale) {
   if (updateError) return { ok: false, error: updateError.message };
   revalidatePath(`/companies/${company.id}`);
   revalidatePath("/companies");
-  return { ok: true };
+  return { ok: true, source: "scraper" };
 }
 
