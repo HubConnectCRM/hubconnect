@@ -45,8 +45,11 @@ export default async function DashboardPage() {
     supabase.from("deals").select("id, offer_value, stage", { count: "exact" }).eq("owner_id", profile.id).in("stage", ["prospect", "contacted", "in_progress", "proposal"]),
     // Mirrors the Sales page's own definition of "won" (see app/(app)/sales/page.js) —
     // a deal counts as won via stage='won' OR po_won=true OR having been pushed to an
-    // event, not stage alone, otherwise this undercounts real won deals.
-    supabase.from("deals").select("*", { count: "exact", head: true }).eq("owner_id", profile.id).or("stage.eq.won,po_won.eq.true,pushed_event_id.not.is.null"),
+    // event, not stage alone, otherwise this undercounts real won deals. Fetched as
+    // rows (not a head count) so we can scope to the current year using won_at —
+    // falling back to created_at in JS rather than a DB-side .gte(), since won_at may
+    // still be null on rows saved before that column existed.
+    supabase.from("deals").select("won_at, created_at", { count: "exact" }).eq("owner_id", profile.id).or("stage.eq.won,po_won.eq.true,pushed_event_id.not.is.null"),
     supabase.from("events").select("id, name, location, venue_name, start_date, status, prospect_number").gte("start_date", today).neq("status", "cancelled").order("start_date").limit(4),
     supabase.from("lead_contacts").select("id, probability, reconnect_at, next_step, contact:contacts(full_name, company:companies(name))").eq("owner_id", profile.id).not("reconnect_at", "is", null).gte("reconnect_at", new Date(Date.now() - 86400000).toISOString()).order("reconnect_at").limit(6),
     supabase.from("audit_log").select("id, table_name, action, changed_at").eq("user_id", profile.id).order("changed_at", { ascending: false }).limit(6),
@@ -60,6 +63,9 @@ export default async function DashboardPage() {
     .order("next_step_due", { ascending: true })
     .limit(6);
 
+  const currentYear = new Date().getFullYear();
+  const wonThisYear = (wonDeals.data || []).filter((d) => new Date(d.won_at || d.created_at).getFullYear() === currentYear).length;
+
   const stats = {
     contacts: contacts.count || 0,
     companies: companies.count || 0,
@@ -68,7 +74,7 @@ export default async function DashboardPage() {
     deals: deals.count || 0,
     activePipeline: activePipeline.count || activePipeline.data?.length || 0,
     activePipelineValue: (activePipeline.data || []).reduce((total, deal) => total + Number(deal.offer_value || 0), 0),
-    won: wonDeals.count || 0,
+    won: wonThisYear,
   };
 
   return (
