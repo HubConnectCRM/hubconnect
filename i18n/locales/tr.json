@@ -464,10 +464,10 @@
     "kinds": { "call_note": "Görüşme Notu", "task": "Hatırlatma", "lead_update": "Lead Güncelleme" }
   },
   "cost": {
-    "open": "Bilancino",
+    "open": "Bilanço",
     "pickerSubtitle": "Maliyetlerini görmek/eklemek için bir event ya da lead dosyası seç.",
     "pickerSearch": "Event ve lead dosyalarında ara...",
-    "subtitle": "Bu event/lead dosyası için maliyet ve gelir — Bilancino Excel formatıyla birebir aynı.",
+    "subtitle": "Bu event/lead dosyası için maliyet ve gelir — Bilanço Excel formatıyla birebir aynı.",
     "export": "Excel'e Aktar",
     "costi": "MALİYETLER",
     "ricavi": "GELİRLER",

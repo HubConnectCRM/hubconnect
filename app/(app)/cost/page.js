@@ -11,11 +11,44 @@ export default async function CostPage({ searchParams }) {
   // just from an event/lead file's own "Bilancino" button. List every event
   // and lead file so the sheet is reachable without going through one first.
   if (!eventId && !leadFileId) {
-    const [{ data: events }, { data: leadFiles }] = await Promise.all([
+    const [{ data: events }, { data: leadFiles }, { data: scopedCosts }, { data: scopedRevenues }] = await Promise.all([
       supabase.from("events").select("id, name, start_date").order("start_date", { ascending: false }),
-      supabase.from("lead_files").select("id, name").order("name"),
+      supabase.from("lead_files").select("id, name, linked_event_id").order("name"),
+      supabase.from("cost_items").select("event_id, lead_file_id"),
+      supabase.from("revenue_items").select("event_id, lead_file_id"),
     ]);
-    return <CostPickerView events={events || []} leadFiles={leadFiles || []} />;
+
+    // A lead file linked to an event (lead_files.linked_event_id) is the
+    // same real-world thing as that event — list it once, not once under
+    // "Events" and again under "Leads". Whichever scope already has
+    // cost/revenue rows keeps those rows visible; if neither does yet,
+    // default to the event.
+    const leadFileIdsWithData = new Set();
+    for (const row of [...(scopedCosts || []), ...(scopedRevenues || [])]) {
+      if (row.lead_file_id) leadFileIdsWithData.add(row.lead_file_id);
+    }
+    const linkedFileByEventId = new Map();
+    const standaloneLeadFiles = [];
+    for (const file of leadFiles || []) {
+      if (file.linked_event_id) linkedFileByEventId.set(file.linked_event_id, file);
+      else standaloneLeadFiles.push(file);
+    }
+
+    const scopes = (events || []).map((event) => {
+      const linkedFile = linkedFileByEventId.get(event.id);
+      const useLeadFile = linkedFile && leadFileIdsWithData.has(linkedFile.id);
+      return {
+        id: event.id,
+        name: event.name,
+        date: event.start_date,
+        href: useLeadFile ? `/cost?leadFile=${linkedFile.id}` : `/cost?event=${event.id}`,
+      };
+    });
+    for (const file of standaloneLeadFiles) {
+      scopes.push({ id: file.id, name: file.name, date: null, href: `/cost?leadFile=${file.id}` });
+    }
+
+    return <CostPickerView scopes={scopes} />;
   }
 
   const [scopeResult, itemsResult, revenueItemsResult, dealsResult] = await Promise.all([
