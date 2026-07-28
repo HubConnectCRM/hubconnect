@@ -14,6 +14,21 @@ function canManageSales(profile) {
 
 const salesDenied = () => ({ error: "sales_read_only" });
 
+// Changing a deal's stage from the Sales page (dropdown, or pushing to an
+// event) never used to reach back to the lead(s) it came from — Performance
+// and the Leads page's own badge read lead_contacts.status directly, so a
+// deal marked won here kept showing as still-open on that side. Mirrors the
+// status mapping createOpportunityFromLeadContact already uses when a deal
+// is created straight from a lead.
+async function syncLeadContactStatus(supabase, dealId, leadFileId, stage) {
+  if (!leadFileId) return;
+  const { data: reps } = await supabase.from("deal_reps").select("contact_id").eq("deal_id", dealId);
+  const contactIds = (reps || []).map((r) => r.contact_id).filter(Boolean);
+  if (!contactIds.length) return;
+  const status = stage === "won" ? "won" : stage === "lost" ? "lost" : "opportunity";
+  await supabase.from("lead_contacts").update({ status }).eq("lead_file_id", leadFileId).in("contact_id", contactIds);
+}
+
 async function resolveCompany(supabase, name, userId) {
   const name_clean = clean(name);
   if (!name_clean) return null;
@@ -92,6 +107,7 @@ export async function setDealStage(dealId, stage, leadFileId) {
   // as if they'd just happened.
   const patch = { stage, won_at: stage === "won" ? new Date().toISOString() : null };
   await supabase.from("deals").update(patch).eq("id", dealId);
+  await syncLeadContactStatus(supabase, dealId, leadFileId, stage);
   if (leadFileId) revalidatePath(`/leads/${leadFileId}`);
   revalidatePath("/sales");
 }
@@ -277,15 +293,13 @@ export async function pushDealToEvent(prevState, formData) {
     }
   }
 
-  await supabase
-    .from("deals")
-    .update({
-      stage: "won",
-      po_won: true,
-      pushed_event_id: eventId,
-      pushed_at: new Date().toISOString(),
-    })
-    .eq("id", dealId);
+  // won_at only set the first time this deal actually becomes won — a
+  // repush shouldn't reset the original date (same rule as setDealStage).
+  const { data: currentDeal } = await supabase.from("deals").select("stage, won_at").eq("id", dealId).single();
+  const dealPatch = { stage: "won", po_won: true, pushed_event_id: eventId, pushed_at: new Date().toISOString() };
+  if (currentDeal?.stage !== "won" || !currentDeal?.won_at) dealPatch.won_at = new Date().toISOString();
+  await supabase.from("deals").update(dealPatch).eq("id", dealId);
+  await syncLeadContactStatus(supabase, dealId, leadFileId, "won");
 
   if (leadFileId) revalidatePath(`/leads/${leadFileId}`);
   revalidatePath("/sales");
