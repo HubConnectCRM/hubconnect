@@ -53,6 +53,16 @@ export async function saveLeadFile(prevState, formData) {
   redirect(`/leads/${fileId}`);
 }
 
+export async function lookupDuplicateLeadFile(name, excludeId) {
+  const norm = clean(name);
+  if (!norm) return null;
+  const { supabase } = await requireProfile();
+  let query = supabase.from("lead_files").select("id, name").ilike("name", norm).limit(1);
+  if (excludeId) query = query.neq("id", excludeId);
+  const { data } = await query.maybeSingle();
+  return data || null;
+}
+
 export async function deleteLeadFile(id) {
   const { supabase, profile } = await requireProfile();
   if (!canManageSales(profile)) return salesDenied();

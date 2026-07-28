@@ -1,13 +1,22 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import Link from "next/link";
 import { useTranslation } from "react-i18next";
-import { saveEvent } from "@/app/(app)/events/actions";
+import { saveEvent, lookupDuplicateEvent } from "@/app/(app)/events/actions";
 import { Button, Card, Field, Input, Select, Textarea } from "@/components/ui";
 
 export default function EventForm({ event }) {
   const { t } = useTranslation();
   const [state, action, pending] = useActionState(saveEvent, {});
+  const [dup, setDup] = useState(null);
+
+  async function checkDup(e) {
+    const name = e.target.value.trim();
+    if (!name) return setDup(null);
+    const match = await lookupDuplicateEvent(name, event?.id || null);
+    setDup(match);
+  }
 
   return (
     <form action={action} className="mx-auto max-w-2xl">
@@ -24,8 +33,16 @@ export default function EventForm({ event }) {
 
       <Card className="space-y-4 p-6">
         <Field label={t("common.name")} required>
-          <Input name="name" defaultValue={event?.name || ""} required />
+          <Input name="name" defaultValue={event?.name || ""} required onBlur={checkDup} />
         </Field>
+        {dup && (
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            {t("events.duplicateWarning")}{" "}
+            <Link href={`/events/${dup.id}`} className="font-medium underline">
+              {dup.name}{dup.start_date ? ` · ${new Date(dup.start_date).toLocaleDateString()}` : ""}
+            </Link>
+          </p>
+        )}
         <Field label={t("events.location")}>
           <Input name="location" defaultValue={event?.location || ""} />
         </Field>

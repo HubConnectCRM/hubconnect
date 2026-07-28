@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Card, EmptyState, Input, PageHeader } from "@/components/ui";
+import { Button, Card, EmptyState, Input, PageHeader } from "@/components/ui";
 
 export default function CostPickerView({ scopes }) {
   const { t } = useTranslation();
@@ -12,7 +12,9 @@ export default function CostPickerView({ scopes }) {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <PageHeader title={t("cost.open")} subtitle={t("cost.pickerSubtitle")} />
+      <PageHeader title={t("cost.open")} subtitle={t("cost.pickerSubtitle")}>
+        <Button href="/cost/general" variant="secondary">{t("cost.generalTitle")}</Button>
+      </PageHeader>
       <Card className="mb-6 p-4">
         <Input value={q} onChange={(event) => setQ(event.target.value)} placeholder={t("cost.pickerSearch")} />
       </Card>

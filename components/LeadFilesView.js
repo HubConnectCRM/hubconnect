@@ -1,9 +1,10 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
+import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import { Badge, Button, Card, EmptyState, Field, Input, PageHeader, Select, Textarea } from "@/components/ui";
-import { saveLeadFile } from "@/app/(app)/leads/actions";
+import { saveLeadFile, lookupDuplicateLeadFile } from "@/app/(app)/leads/actions";
 import { combineLeadMetrics, leadRate, LEAD_PROBABILITIES } from "@/lib/leadMetrics";
 
 export default function LeadFilesView({ files, loadError = null, canEdit = true }) {
@@ -155,13 +156,29 @@ function Mini({ label, value }) {
 function LeadFileForm({ file, onCancel }) {
   const { t } = useTranslation();
   const [state, action, pending] = useActionState(saveLeadFile, {});
+  const [dup, setDup] = useState(null);
+
+  async function checkDup(e) {
+    const name = e.target.value.trim();
+    if (!name) return setDup(null);
+    const match = await lookupDuplicateLeadFile(name, file?.id || null);
+    setDup(match);
+  }
 
   return (
     <form action={action} className="space-y-4 max-w-lg">
       {file && <input type="hidden" name="id" value={file.id} />}
       <Field label={t("common.name")}>
-        <Input name="name" defaultValue={file?.name || ""} required />
+        <Input name="name" defaultValue={file?.name || ""} required onBlur={checkDup} />
       </Field>
+      {dup && (
+        <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          {t("leads.duplicateWarning")}{" "}
+          <Link href={`/leads/${dup.id}`} className="font-medium underline">
+            {dup.name}
+          </Link>
+        </p>
+      )}
       <Field label={t("leads.description")}>
         <Textarea name="description" defaultValue={file?.description || ""} rows={2} />
       </Field>

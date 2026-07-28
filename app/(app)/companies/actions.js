@@ -45,6 +45,16 @@ export async function saveCompany(prevState, formData) {
   redirect(`/companies/${companyId}`);
 }
 
+export async function lookupDuplicateCompany(name, excludeId) {
+  const norm = clean(name);
+  if (!norm) return null;
+  const { supabase } = await requireProfile();
+  let query = supabase.from("companies").select("id, name").eq("name_normalized", norm.toLowerCase()).limit(1);
+  if (excludeId) query = query.neq("id", excludeId);
+  const { data } = await query.maybeSingle();
+  return data || null;
+}
+
 export async function deleteCompany(id) {
   const { supabase } = await requireProfile();
   const { error } = await supabase.from("companies").delete().eq("id", id);

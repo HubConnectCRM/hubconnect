@@ -1,13 +1,22 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import Link from "next/link";
 import { useTranslation } from "react-i18next";
-import { saveCompany } from "@/app/(app)/companies/actions";
+import { saveCompany, lookupDuplicateCompany } from "@/app/(app)/companies/actions";
 import { Button, Card, Field, Input, Textarea } from "@/components/ui";
 
 export default function CompanyForm({ company }) {
   const { t } = useTranslation();
   const [state, action, pending] = useActionState(saveCompany, {});
+  const [dup, setDup] = useState(null);
+
+  async function checkDup(e) {
+    const name = e.target.value.trim();
+    if (!name) return setDup(null);
+    const match = await lookupDuplicateCompany(name, company?.id || null);
+    setDup(match);
+  }
 
   return (
     <form action={action} className="mx-auto max-w-2xl">
@@ -22,8 +31,16 @@ export default function CompanyForm({ company }) {
       {company?.id && <input type="hidden" name="id" value={company.id} />}
       <Card className="space-y-4 p-6">
         <Field label={t("common.name")} required>
-          <Input name="name" defaultValue={company?.name || ""} required />
+          <Input name="name" defaultValue={company?.name || ""} required onBlur={checkDup} />
         </Field>
+        {dup && (
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            {t("companies.duplicateWarning")}{" "}
+            <Link href={`/companies/${dup.id}`} className="font-medium underline">
+              {dup.name}
+            </Link>
+          </p>
+        )}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label={t("companies.sector")}>
             <Input name="sector" defaultValue={company?.sector || ""} />

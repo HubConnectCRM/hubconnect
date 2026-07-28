@@ -79,6 +79,16 @@ export async function saveEvent(prevState, formData) {
   redirect(`/events/${eventId}`);
 }
 
+export async function lookupDuplicateEvent(name, excludeId) {
+  const norm = clean(name);
+  if (!norm) return null;
+  const { supabase } = await requireProfile();
+  let query = supabase.from("events").select("id, name, start_date").ilike("name", norm).limit(1);
+  if (excludeId) query = query.neq("id", excludeId);
+  const { data } = await query.maybeSingle();
+  return data || null;
+}
+
 export async function deleteEvent(id) {
   const { supabase, profile } = await requireProfile();
   if (!canManageEvents(profile)) return eventAccessDenied();
