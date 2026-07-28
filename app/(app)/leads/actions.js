@@ -225,6 +225,19 @@ export async function updateLeadPerson(prevState, formData) {
   }).eq("id", leadContactId);
   if (leadError) return { error: leadError.message };
 
+  // A deal may already exist for this lead (created earlier via "Mark won"/
+  // "Opportunity") — its offer_value/iva were only a snapshot taken at that
+  // moment, so a later price/VAT edit here must also push forward into the
+  // deal, otherwise Sales and the Cost sheet keep showing a stale amount.
+  if (companyId) {
+    const newIva = newEstimatedValue * (newVatRate / 100);
+    await supabase
+      .from("deals")
+      .update({ offer_value: newEstimatedValue, iva: newIva })
+      .eq("lead_file_id", leadFileId)
+      .eq("company_id", companyId);
+  }
+
   const feedbackChanged = (previousLead?.notes || null) !== newNotes;
   const nextStepChanged = (previousLead?.next_step || null) !== newNextStep;
   const priceChanged = Number(previousLead?.estimated_value || 0) !== newEstimatedValue;
