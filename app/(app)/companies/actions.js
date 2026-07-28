@@ -92,38 +92,93 @@ function shortSentence(v, fallback) {
   return cleaned.replace(/\s+/g, " ").split(/(?<=[.!?])\s+/).slice(0, 2).join(" ").slice(0, 360);
 }
 
-function inferBusinessModel(text) {
-  const hay = (text || "").toLowerCase();
-  if (/software|platform|saas|app|cloud/.test(hay)) return "Likely software/platform-led; verify pricing and delivery model with the website or sales notes.";
-  if (/consult|agency|studio|servizi|services/.test(hay)) return "Likely service/consulting-led; verify exact offering and commercial model.";
-  if (/shop|store|retail|ecommerce|e-commerce|brand|product/.test(hay)) return "Likely product/retail-led; verify channels, target customer and distribution.";
-  return "Not verified automatically.";
+// This "cache" is not AI/LLM-generated (no MailBos or OpenAI key needed) —
+// it's a free scrape of the company's own public website (title/meta
+// description tags) dropped into a fixed template. Only the fixed labels
+// and boilerplate below are ours to translate; the scraped sentences
+// (what they do / value proposition) are the target site's own text, in
+// whatever language that site happens to publish in.
+const CACHE_COPY = {
+  en: {
+    company: "Company", whatTheyDo: "What they do", products: "Products / services", productsHint: (h) => `Public website metadata suggests: ${h}. Verify exact products/services manually.`,
+    targetCustomers: "Target customers", targetCustomersHint: "Not verified automatically. Use CRM notes, website pages, and outreach context to complete this field.",
+    geography: "Geography", geographyHint: (w) => `Not verified automatically${w ? `; public website/domain detected at ${w}.` : "."}`,
+    differentiators: "Differentiators", differentiatorsHint: "Not verified automatically. Add differentiators from website copy, client list, or sales call notes.",
+    valueProposition: "Value proposition", businessModel: "Business model", companySize: "Company size", notableClients: "Notable clients", tone: "Tone", website: "Website",
+    notVerified: "Not verified automatically.", websiteNotFound: "Not found",
+    noDescription: "No reliable public description was found automatically. Add details manually or refresh after adding a website/domain.",
+    bmSoftware: "Likely software/platform-led; verify pricing and delivery model with the website or sales notes.",
+    bmService: "Likely service/consulting-led; verify exact offering and commercial model.",
+    bmProduct: "Likely product/retail-led; verify channels, target customer and distribution.",
+    tonePremium: "premium / brand-conscious", toneTech: "professional / innovation-focused", toneDefault: "professional",
+  },
+  tr: {
+    company: "Şirket", whatTheyDo: "Ne yapıyorlar", products: "Ürünler / hizmetler", productsHint: (h) => `Kamuya açık site verisine göre: ${h}. Kesin ürün/hizmetleri manuel doğrula.`,
+    targetCustomers: "Hedef müşteriler", targetCustomersHint: "Otomatik doğrulanmadı. Bu alanı CRM notları, site sayfaları ve görüşme bağlamıyla tamamla.",
+    geography: "Coğrafya", geographyHint: (w) => `Otomatik doğrulanmadı${w ? `; ${w} adresinde bir site/domain tespit edildi.` : "."}`,
+    differentiators: "Farklılaştırıcılar", differentiatorsHint: "Otomatik doğrulanmadı. Site metninden, müşteri listesinden veya görüşme notlarından farklılaştırıcı ekle.",
+    valueProposition: "Değer önerisi", businessModel: "İş modeli", companySize: "Şirket büyüklüğü", notableClients: "Önemli müşteriler", tone: "Ton", website: "Website",
+    notVerified: "Otomatik doğrulanmadı.", websiteNotFound: "Bulunamadı",
+    noDescription: "Otomatik olarak güvenilir bir açıklama bulunamadı. Manuel olarak ekle veya bir website/domain ekledikten sonra tekrar dene.",
+    bmSoftware: "Muhtemelen yazılım/platform odaklı; fiyatlandırma ve teslimat modelini site veya satış notlarından doğrula.",
+    bmService: "Muhtemelen danışmanlık/hizmet odaklı; tam teklifi ve ticari modeli doğrula.",
+    bmProduct: "Muhtemelen ürün/perakende odaklı; kanalları, hedef müşteriyi ve dağıtımı doğrula.",
+    tonePremium: "premium / marka odaklı", toneTech: "profesyonel / inovasyon odaklı", toneDefault: "profesyonel",
+  },
+  it: {
+    company: "Azienda", whatTheyDo: "Cosa fanno", products: "Prodotti / servizi", productsHint: (h) => `I metadati del sito pubblico suggeriscono: ${h}. Verifica manualmente i prodotti/servizi esatti.`,
+    targetCustomers: "Clienti target", targetCustomersHint: "Non verificato automaticamente. Usa le note CRM, le pagine del sito e il contesto di contatto per completare questo campo.",
+    geography: "Geografia", geographyHint: (w) => `Non verificato automaticamente${w ? `; sito/dominio pubblico rilevato su ${w}.` : "."}`,
+    differentiators: "Elementi distintivi", differentiatorsHint: "Non verificato automaticamente. Aggiungi elementi distintivi dal sito, dalla lista clienti o dalle note di vendita.",
+    valueProposition: "Proposta di valore", businessModel: "Modello di business", companySize: "Dimensione azienda", notableClients: "Clienti rilevanti", tone: "Tono", website: "Sito web",
+    notVerified: "Non verificato automaticamente.", websiteNotFound: "Non trovato",
+    noDescription: "Non è stata trovata automaticamente una descrizione pubblica affidabile. Aggiungi i dettagli manualmente o aggiorna dopo aver inserito un sito/dominio.",
+    bmSoftware: "Probabilmente orientato a software/piattaforma; verifica prezzi e modello di consegna sul sito o nelle note di vendita.",
+    bmService: "Probabilmente orientato a consulenza/servizi; verifica l'offerta esatta e il modello commerciale.",
+    bmProduct: "Probabilmente orientato a prodotto/retail; verifica canali, cliente target e distribuzione.",
+    tonePremium: "premium / attento al brand", toneTech: "professionale / orientato all'innovazione", toneDefault: "professionale",
+  },
+};
+
+function cacheCopy(locale) {
+  return CACHE_COPY[locale] || CACHE_COPY.en;
 }
 
-function inferTone(text) {
+function inferBusinessModel(text, locale) {
+  const copy = cacheCopy(locale);
   const hay = (text || "").toLowerCase();
-  if (/luxury|premium|design|fashion|beauty/.test(hay)) return "premium / brand-conscious";
-  if (/technology|innovation|software|platform|ai/.test(hay)) return "professional / innovation-focused";
-  return "professional";
+  if (/software|platform|saas|app|cloud/.test(hay)) return copy.bmSoftware;
+  if (/consult|agency|studio|servizi|services/.test(hay)) return copy.bmService;
+  if (/shop|store|retail|ecommerce|e-commerce|brand|product/.test(hay)) return copy.bmProduct;
+  return copy.notVerified;
 }
 
-function structuredCompanyCache({ name, website, title, description }) {
-  const main = shortSentence(description || title, "No reliable public description was found automatically. Add details manually or refresh after adding a website/domain.");
+function inferTone(text, locale) {
+  const copy = cacheCopy(locale);
+  const hay = (text || "").toLowerCase();
+  if (/luxury|premium|design|fashion|beauty/.test(hay)) return copy.tonePremium;
+  if (/technology|innovation|software|platform|ai/.test(hay)) return copy.toneTech;
+  return copy.toneDefault;
+}
+
+function structuredCompanyCache({ name, website, title, description, locale }) {
+  const copy = cacheCopy(locale);
+  const main = shortSentence(description || title, copy.noDescription);
   const headline = shortSentence(title, name);
   const text = `${title || ""} ${description || ""}`;
   return [
-    `Company: ${name}`,
-    `What they do: ${main}`,
-    `Products / services: Public website metadata suggests: ${headline}. Verify exact products/services manually.`,
-    `Target customers: Not verified automatically. Use CRM notes, website pages, and outreach context to complete this field.`,
-    `Geography: Not verified automatically${website ? `; public website/domain detected at ${website}.` : "."}`,
-    `Differentiators: Not verified automatically. Add differentiators from website copy, client list, or sales call notes.`,
-    `Value proposition: ${main}`,
-    `Business model: ${inferBusinessModel(text)}`,
-    `Company size: Not verified automatically.`,
-    `Notable clients: Not verified automatically.`,
-    `Tone: ${inferTone(text)}`,
-    `Website: ${website || "Not found"}`,
+    `${copy.company}: ${name}`,
+    `${copy.whatTheyDo}: ${main}`,
+    `${copy.products}: ${copy.productsHint(headline)}`,
+    `${copy.targetCustomers}: ${copy.targetCustomersHint}`,
+    `${copy.geography}: ${copy.geographyHint(website)}`,
+    `${copy.differentiators}: ${copy.differentiatorsHint}`,
+    `${copy.valueProposition}: ${main}`,
+    `${copy.businessModel}: ${inferBusinessModel(text, locale)}`,
+    `${copy.companySize}: ${copy.notVerified}`,
+    `${copy.notableClients}: ${copy.notVerified}`,
+    `${copy.tone}: ${inferTone(text, locale)}`,
+    `${copy.website}: ${website || copy.websiteNotFound}`,
   ].join("\n");
 }
 
@@ -152,7 +207,7 @@ async function fetchHtml(url) {
   }
 }
 
-async function enrichCompanyRecord(company) {
+async function enrichCompanyRecord(company, locale) {
   const candidates = [];
   const existing = normalizeCompanyUrl(company.website);
   if (existing) candidates.push(existing);
@@ -163,12 +218,12 @@ async function enrichCompanyRecord(company) {
     if (!html) continue;
     const title = stripCompanyHtml(readMeta(html, "og:title") || pageTitle(html));
     const description = stripCompanyHtml(readMeta(html, "description") || readMeta(html, "og:description"));
-    return { website: existing || url, overview: structuredCompanyCache({ name: company.name, website: existing || url, title, description }) };
+    return { website: existing || url, overview: structuredCompanyCache({ name: company.name, website: existing || url, title, description, locale }) };
   }
-  return { website: existing || null, overview: structuredCompanyCache({ name: company.name, website: existing, title: null, description: null }) };
+  return { website: existing || null, overview: structuredCompanyCache({ name: company.name, website: existing, title: null, description: null, locale }) };
 }
 
-export async function enrichExistingCompanies() {
+export async function enrichExistingCompanies(locale) {
   const { supabase } = await requireProfile();
   const { data: companies = [], error } = await supabase
     .from("companies")
@@ -182,7 +237,7 @@ export async function enrichExistingCompanies() {
   for (let i = 0; i < targets.length; i += 6) {
     const chunk = targets.slice(i, i + 6);
     const results = await Promise.allSettled(chunk.map(async (company) => {
-      const info = await enrichCompanyRecord(company);
+      const info = await enrichCompanyRecord(company, locale);
       const patch = {};
       if (info.website && !company.website) patch.website = info.website;
       if (info.overview && isWeakOverview(company.overview)) patch.overview = info.overview;
@@ -198,7 +253,7 @@ export async function enrichExistingCompanies() {
   return { ok: true, enriched, scanned: targets.length };
 }
 
-export async function refreshCompanyCache(companyId) {
+export async function refreshCompanyCache(companyId, locale) {
   const { supabase } = await requireProfile();
   const { data: company, error } = await supabase
     .from("companies")
@@ -206,7 +261,7 @@ export async function refreshCompanyCache(companyId) {
     .eq("id", companyId)
     .single();
   if (error || !company) return { ok: false, error: error?.message || "not_found" };
-  const info = await enrichCompanyRecord(company);
+  const info = await enrichCompanyRecord(company, locale);
   const patch = { overview: info.overview };
   if (info.website) patch.website = info.website;
   const { error: updateError } = await supabase.from("companies").update(patch).eq("id", company.id);

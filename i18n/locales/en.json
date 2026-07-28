@@ -185,7 +185,16 @@
     "duplicateWarning": "A company with this name may already exist:",
     "deleteConfirm": "Delete this company? Its contacts will be kept but unlinked.",
     "created": "Company created.",
-    "updated": "Company updated."
+    "updated": "Company updated.",
+    "cacheLabel": "Company cache",
+    "refreshCache": "Refresh cache",
+    "refreshingCache": "Refreshing…",
+    "cacheRefreshed": "Company cache refreshed.",
+    "cacheRefreshFailed": "Cache refresh failed.",
+    "cacheListSubtitle": "Free, scraped from each company's public website — no AI or MailBos connection needed.",
+    "cacheMissing": "Cache missing companies",
+    "cachingMissing": "Caching…",
+    "cachedResult": "Cached {{enriched}} companies. Scanned {{scanned}}."
   },
   "events": {
     "title": "Events",

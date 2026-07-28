@@ -185,7 +185,16 @@
     "duplicateWarning": "Bu adla bir şirket zaten olabilir:",
     "deleteConfirm": "Bu şirketi sil? Kişiler korunur ama bağlantısı kalkar.",
     "created": "Şirket oluşturuldu.",
-    "updated": "Şirket güncellendi."
+    "updated": "Şirket güncellendi.",
+    "cacheLabel": "Şirket önbelleği",
+    "refreshCache": "Önbelleği yenile",
+    "refreshingCache": "Yenileniyor…",
+    "cacheRefreshed": "Şirket önbelleği yenilendi.",
+    "cacheRefreshFailed": "Önbellek yenileme başarısız.",
+    "cacheListSubtitle": "Ücretsiz — her şirketin kendi genel sitesinden taranır, AI veya MailBos bağlantısı gerekmez.",
+    "cacheMissing": "Eksik şirketleri önbelleğe al",
+    "cachingMissing": "Önbelleğe alınıyor…",
+    "cachedResult": "{{enriched}} şirket önbelleğe alındı. {{scanned}} tanesi tarandı."
   },
   "events": {
     "title": "Etkinlikler",

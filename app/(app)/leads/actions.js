@@ -291,7 +291,7 @@ export async function createOpportunityFromLeadContact(prevState, formData) {
 
   const { data: existingDeal } = await supabase
     .from("deals")
-    .select("id")
+    .select("id, stage, won_at")
     .eq("lead_file_id", leadFileId)
     .eq("company_id", finalCompanyId)
     .limit(1)
@@ -310,6 +310,9 @@ export async function createOpportunityFromLeadContact(prevState, formData) {
         po_won: stage === "won",
         offer_value: offerValue,
         iva,
+        // won_at is the stable date shown/filtered on the Sales page — unlike
+        // updated_at it's only touched at the moment a deal actually becomes won.
+        won_at: stage === "won" ? new Date().toISOString() : null,
         notes: clean(formData.get("notes")),
         created_by: user.id,
       })
@@ -319,7 +322,12 @@ export async function createOpportunityFromLeadContact(prevState, formData) {
     dealId = deal.id;
   } else {
     const patch = { stage, offer_value: offerValue, iva };
-    if (stage === "won") patch.po_won = true;
+    if (stage === "won") {
+      patch.po_won = true;
+      if (existingDeal.stage !== "won" || !existingDeal.won_at) patch.won_at = new Date().toISOString();
+    } else {
+      patch.won_at = null;
+    }
     await supabase.from("deals").update(patch).eq("id", dealId);
   }
 

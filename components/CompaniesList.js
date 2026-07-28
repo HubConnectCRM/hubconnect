@@ -8,7 +8,7 @@ import { enrichExistingCompanies } from "@/app/(app)/companies/actions";
 import { Icon } from "@/components/icons";
 
 export default function CompaniesList({ companies }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const [q, setQ] = useState("");
   const [pending, startTransition] = useTransition();
@@ -27,14 +27,14 @@ export default function CompaniesList({ companies }) {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <PageHeader title={t("companies.title")} subtitle="Use Cache missing companies to enrich old imports without AI cost.">
+      <PageHeader title={t("companies.title")} subtitle={t("companies.cacheListSubtitle")}>
         <Button
           type="button"
           variant="secondary"
           disabled={pending}
-          onClick={() => startTransition(async () => setCacheResult(await enrichExistingCompanies()))}
+          onClick={() => startTransition(async () => setCacheResult(await enrichExistingCompanies(i18n.language)))}
         >
-          {pending ? "Caching…" : "Cache missing companies"}
+          {pending ? t("companies.cachingMissing") : t("companies.cacheMissing")}
         </Button>
         <Button href="/companies/new">
           <Icon.companies width={16} height={16} />
@@ -42,7 +42,7 @@ export default function CompaniesList({ companies }) {
         </Button>
       </PageHeader>
 
-      {cacheResult?.ok && <p className="mb-3 text-sm text-green-700">Cached {cacheResult.enriched} companies. Scanned {cacheResult.scanned}.</p>}
+      {cacheResult?.ok && <p className="mb-3 text-sm text-green-700">{t("companies.cachedResult", { enriched: cacheResult.enriched, scanned: cacheResult.scanned })}</p>}
       {cacheResult?.error && <p className="mb-3 text-sm text-red-700">{cacheResult.error}</p>}
 
       <div className="mb-4">

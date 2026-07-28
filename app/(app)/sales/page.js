@@ -17,7 +17,7 @@ export default async function SalesPage() {
     supabase
       .from("deals")
       .select(
-        "id, company_name, stage, po_won, pushed_event_id, group_id, owner_id, lead_file_id, created_at, updated_at, company:companies(id, name), owner:profiles!deals_owner_id_fkey(id, full_name, email), lead_file:lead_files(id, name), pushed_event:events!deals_pushed_event_id_fkey(id, name), group:contact_groups(name), reps:deal_reps(id, rsvp, notes, contact:contacts(id, full_name, email, phone, job_title))"
+        "id, company_name, stage, po_won, pushed_event_id, group_id, owner_id, lead_file_id, created_at, updated_at, won_at, company:companies(id, name), owner:profiles!deals_owner_id_fkey(id, full_name, email), lead_file:lead_files(id, name), pushed_event:events!deals_pushed_event_id_fkey(id, name), group:contact_groups(name), reps:deal_reps(id, rsvp, notes, contact:contacts(id, full_name, email, phone, job_title))"
       )
       .or("stage.eq.won,po_won.eq.true,pushed_event_id.not.is.null")
       .order("created_at", { ascending: false })
@@ -56,12 +56,13 @@ export default async function SalesPage() {
       lead_file_id: row.lead_file_id,
       created_at: row.created_at,
       updated_at: row.created_at,
+      won_at: row.created_at,
       owner: row.owner,
       lead_file: row.lead_file,
       reps: row.contact ? [{ id: `lead-rep-${row.id}`, rsvp: null, notes: row.probability || "", contact: row.contact }] : [],
     });
   }
-  wonDeals.sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
+  wonDeals.sort((a, b) => new Date(b.won_at || b.updated_at || b.created_at) - new Date(a.won_at || a.updated_at || a.created_at));
   const companyIds = new Set(wonDeals.map((d) => d.company?.id).filter(Boolean));
   const salesCompanies = (companies || []).filter((c) => companyIds.has(c.id));
   const repMap = new Map();

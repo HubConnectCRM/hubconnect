@@ -86,7 +86,12 @@ export async function saveDeal(prevState, formData) {
 export async function setDealStage(dealId, stage, leadFileId) {
   const { supabase, profile } = await requireProfile();
   if (!canManageSales(profile)) return salesDenied();
-  await supabase.from("deals").update({ stage }).eq("id", dealId);
+  // won_at is the only stable timestamp for "when was this actually won" —
+  // updated_at gets bumped by any unrelated edit (adding a rep, price sync),
+  // which used to make the Sales page's date filter show stale won deals
+  // as if they'd just happened.
+  const patch = { stage, won_at: stage === "won" ? new Date().toISOString() : null };
+  await supabase.from("deals").update(patch).eq("id", dealId);
   if (leadFileId) revalidatePath(`/leads/${leadFileId}`);
   revalidatePath("/sales");
 }

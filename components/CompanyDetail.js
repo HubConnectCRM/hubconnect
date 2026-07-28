@@ -8,7 +8,7 @@ import DeleteButton from "@/components/DeleteButton";
 import { deleteCompany, refreshCompanyCache } from "@/app/(app)/companies/actions";
 
 export default function CompanyDetail({ company }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const contacts = company.contacts || [];
   const [pending, startTransition] = useTransition();
   const [cacheMsg, setCacheMsg] = useState(null);
@@ -29,11 +29,11 @@ export default function CompanyDetail({ company }) {
           variant="secondary"
           disabled={pending}
           onClick={() => startTransition(async () => {
-            const res = await refreshCompanyCache(company.id);
-            setCacheMsg(res?.ok ? "Company cache refreshed." : (res?.error || "Cache refresh failed."));
+            const res = await refreshCompanyCache(company.id, i18n.language);
+            setCacheMsg(res?.ok ? t("companies.cacheRefreshed") : (res?.error || t("companies.cacheRefreshFailed")));
           })}
         >
-          {pending ? "Refreshing…" : "Refresh cache"}
+          {pending ? t("companies.refreshingCache") : t("companies.refreshCache")}
         </Button>
         <Button variant="secondary" href={`/companies/${company.id}/edit`}>
           {t("common.edit")}
@@ -96,6 +96,7 @@ export default function CompanyDetail({ company }) {
 }
 
 function CompanyCache({ overview }) {
+  const { t } = useTranslation();
   const rows = String(overview || "")
     .split(/\n+/)
     .map((line) => {
@@ -107,7 +108,7 @@ function CompanyCache({ overview }) {
   if (!rows.length) return <p className="mt-1 whitespace-pre-wrap text-sm">{overview}</p>;
   return (
     <div className="md:col-span-3">
-      <p className="mb-2 text-xs text-[var(--muted)]">Company cache</p>
+      <p className="mb-2 text-xs text-[var(--muted)]">{t("companies.cacheLabel")}</p>
       <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--background)]">
         {rows.map((r) => (
           <div key={r.label} className="grid grid-cols-1 border-b border-[var(--border)] last:border-0 md:grid-cols-[220px_1fr]">

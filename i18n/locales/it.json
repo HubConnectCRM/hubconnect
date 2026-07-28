@@ -185,7 +185,16 @@
     "duplicateWarning": "Potrebbe già esistere un'azienda con questo nome:",
     "deleteConfirm": "Eliminare questa azienda? I contatti restano ma vengono scollegati.",
     "created": "Azienda creata.",
-    "updated": "Azienda aggiornata."
+    "updated": "Azienda aggiornata.",
+    "cacheLabel": "Cache azienda",
+    "refreshCache": "Aggiorna cache",
+    "refreshingCache": "Aggiornamento…",
+    "cacheRefreshed": "Cache azienda aggiornata.",
+    "cacheRefreshFailed": "Aggiornamento cache non riuscito.",
+    "cacheListSubtitle": "Gratuito — recuperato dal sito pubblico di ogni azienda, nessuna AI o connessione MailBos necessaria.",
+    "cacheMissing": "Metti in cache le aziende mancanti",
+    "cachingMissing": "Memorizzazione in corso…",
+    "cachedResult": "{{enriched}} aziende messe in cache. {{scanned}} analizzate."
   },
   "events": {
     "title": "Eventi",
